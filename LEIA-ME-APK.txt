@@ -1,0 +1,55 @@
+# Retro Station — Como gerar o APK
+
+Este projeto foi preparado pra rodar tanto como site/PWA quanto como
+aplicativo Android usando o **Capacitor** (SDK oficial do Ionic).
+
+## Pré-requisitos (na sua máquina, uma vez só)
+
+1. **Node.js 18+** — https://nodejs.org
+2. **Android Studio** — https://developer.android.com/studio
+   - Durante a instalação, marque "Android SDK", "Android SDK Platform" e
+     "Android Virtual Device".
+3. **Java JDK 17** (vem junto com o Android Studio mais novo).
+
+## Passo a passo pra gerar o APK
+
+Abra o terminal **dentro desta pasta** e rode:
+
+```bash
+# 1. Instala o Capacitor
+npm install
+
+# 2. Adiciona a plataforma Android (cria a pasta /android)
+npm run cap:add:android
+
+# 3. Copia os arquivos web pra dentro do projeto Android
+npm run cap:sync
+
+# 4a. Pra gerar APK de teste (debug) — sai em
+#     android/app/build/outputs/apk/debug/app-debug.apk
+npm run apk:debug
+
+# 4b. OU abre o Android Studio pra assinar e publicar na Play Store
+npm run cap:open:android
+```
+
+## Alterações no site → atualizar o APK
+
+Toda vez que você mexer no HTML/JS/CSS, rode de novo:
+
+```bash
+npm run cap:sync
+npm run apk:debug
+```
+
+## Configuração
+
+- `capacitor.config.json` — id do app, nome, splash, status bar.
+- `manifest.json` — usado quando roda como PWA no navegador.
+
+## Login Google dentro do APK
+
+O Capacitor abre o app numa WebView. O login Google por **redirect**
+(que é o que esta versão usa) funciona normalmente dentro da WebView,
+desde que o domínio `retro-station.firebaseapp.com` esteja autorizado
+no Firebase Console → Authentication → Settings → Authorized domains.

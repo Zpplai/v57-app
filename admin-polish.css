@@ -1,0 +1,190 @@
+/* admin-polish.css — visual extra para o painel ADM
+   Aplica espaçamento, agrupamento e hierarquia que faltava na aba de Anúncios
+   e em seções genéricas. Não altera comportamento. */
+
+/* ---------- seções ---------- */
+.section { padding: 4px 2px 40px; }
+.section > h3 {
+  font-size: 18px;
+  margin: 4px 0 4px;
+  display: flex; align-items: center; gap: 8px;
+  letter-spacing: .2px;
+}
+.section > h3::after{
+  content:""; flex:1; height:1px;
+  background: linear-gradient(90deg, var(--border), transparent);
+  margin-left:8px;
+}
+
+/* ---------- toolbar de stats (anúncios) ---------- */
+.ads-toolbar{
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+  gap:10px; margin-bottom:14px;
+}
+.ads-stat{
+  background:linear-gradient(135deg,#1c2436,#141821);
+  border:1px solid var(--border); border-radius:12px;
+  padding:12px 14px; display:flex; flex-direction:column; gap:2px;
+  box-shadow:0 4px 14px rgba(0,0,0,.3);
+}
+.ads-stat strong{ font-size:22px; color:#fff; font-weight:800; }
+.ads-stat span{ font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; }
+
+/* ---------- grupo por local ---------- */
+.ads-local{
+  background:linear-gradient(180deg,#161b27,#11151f);
+  border:1px solid var(--border); border-radius:14px;
+  padding:0; overflow:hidden;
+  transition:border-color .2s, box-shadow .2s;
+}
+.ads-local + .ads-local{ margin-top:0; }
+.ads-local.has-changes{
+  border-color:#f59e0b88;
+  box-shadow:0 0 0 2px rgba(245,158,11,.12);
+}
+.ads-local > summary{
+  list-style:none; cursor:pointer;
+  padding:14px 16px;
+  display:flex; align-items:center; gap:10px;
+  font-weight:700; font-size:14px;
+  background:#1a2030;
+}
+.ads-local > summary::-webkit-details-marker{ display:none; }
+.ads-local > summary::after{
+  content:"▾"; margin-left:auto; color:var(--muted);
+  transition:transform .2s;
+}
+.ads-local[open] > summary::after{ transform:rotate(180deg); }
+.ads-local-icon{ font-size:18px; }
+.ads-local-title{ flex:0 1 auto; }
+.ads-local-count{
+  background:#3b5fcc; color:#fff; font-size:11px; font-weight:700;
+  padding:2px 8px; border-radius:999px; min-width:22px; text-align:center;
+}
+.ads-local-desc{
+  margin:10px 16px 0; color:var(--muted); font-size:12px; line-height:1.5;
+}
+.ads-list{ display:flex; flex-direction:column; gap:10px; padding:10px 16px 4px; }
+.ads-empty{
+  color:var(--muted); font-size:12px; font-style:italic;
+  text-align:center; padding:18px; border:1px dashed var(--border);
+  border-radius:10px; margin:6px 0;
+}
+
+/* ---------- card de anúncio ---------- */
+.ad-card{
+  background:#0f1320; border:1px solid var(--border); border-radius:12px;
+  padding:12px; display:flex; flex-direction:column; gap:10px;
+}
+.ad-card-head{
+  display:flex; align-items:center; gap:10px;
+}
+.ad-dot{
+  width:10px; height:10px; border-radius:50%;
+  box-shadow:0 0 0 3px rgba(255,255,255,.05);
+}
+.ad-card-head .ad-name{
+  flex:1; min-width:0; background:#1b2030; border:1px solid var(--border);
+  color:#fff; border-radius:8px; padding:8px 10px; font-size:13px; font-weight:600;
+}
+.ad-card-head .ad-del{
+  background:#3b1d22; color:#ef4444; border:1px solid #ef444433;
+  border-radius:8px; padding:6px 10px; cursor:pointer; font-size:14px;
+}
+.ad-card-head .ad-del:hover{ background:#ef444422; }
+
+.ad-switch{ position:relative; display:inline-flex; align-items:center; cursor:pointer; }
+.ad-switch input{ position:absolute; opacity:0; pointer-events:none; }
+.ad-switch > span{
+  width:38px; height:22px; background:#2a3142; border-radius:999px; position:relative;
+  transition:background .2s;
+}
+.ad-switch > span::after{
+  content:""; position:absolute; top:2px; left:2px;
+  width:18px; height:18px; background:#fff; border-radius:50%;
+  transition:transform .2s;
+}
+.ad-switch input:checked + span{ background:#22c55e; }
+.ad-switch input:checked + span::after{ transform:translateX(16px); }
+
+.ad-card-body{ display:flex; flex-direction:column; gap:10px; }
+.ad-row{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.ad-row-4{ grid-template-columns:repeat(4, minmax(0,1fr)); }
+.ad-card label{
+  display:flex; flex-direction:column; gap:4px;
+  font-size:11px; text-transform:uppercase; letter-spacing:.5px;
+  color:var(--muted); font-weight:600;
+}
+.ad-card input, .ad-card select, .ad-card textarea{
+  background:#1b2030; border:1px solid var(--border); color:#fff;
+  border-radius:8px; padding:9px 10px; font-size:13px; min-height:38px;
+}
+.ad-card textarea{ font-family:ui-monospace,Menlo,Consolas,monospace; }
+.ad-card input:focus, .ad-card select:focus, .ad-card textarea:focus{
+  outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(91,140,255,.18);
+}
+
+/* ---------- botões dentro do grupo ---------- */
+.ads-add-btn{
+  margin:8px 16px 4px; background:transparent; color:#5b8cff;
+  border:1px dashed #5b8cff66; border-radius:10px;
+  padding:10px 14px; cursor:pointer; font-weight:600; font-size:13px; width:calc(100% - 32px);
+}
+.ads-add-btn:hover{ background:#5b8cff11; }
+.ads-local-save{
+  margin:6px 16px 14px; width:calc(100% - 32px);
+  background:#1f2738; color:#fff; border:1px solid var(--border);
+  border-radius:10px; padding:10px 14px; cursor:pointer;
+  font-weight:700; font-size:13px;
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  transition:background .2s, box-shadow .2s, border-color .2s;
+}
+.ads-local-save.dirty{
+  background:#16a34a; border-color:#22c55e;
+  box-shadow:0 0 0 2px rgba(34,197,94,.25);
+}
+.ads-local-save.saved{ background:#15803d; }
+
+/* ---------- bloco "extra-cfg" (popup auto / banner lateral) ---------- */
+.ads-extra-cfg{
+  margin:10px 16px; padding:12px; border:1px solid var(--border);
+  border-radius:10px; background:#11151f;
+  display:flex; flex-direction:column; gap:8px;
+}
+.ads-extra-cfg label{
+  display:flex; flex-direction:column; gap:4px; font-size:12px; color:var(--muted);
+}
+.ad-switch-row{
+  flex-direction:row !important; align-items:center; gap:10px !important;
+  font-size:13px !important; color:var(--text) !important; text-transform:none !important;
+}
+
+/* ---------- lock overlay ----------
+   pointer-events:none + touch-action:pan-y para que o overlay NÃO bloqueie
+   o scroll vertical da página enquanto o usuário edita os anúncios.
+   O bloqueio de navegação entre abas é feito por JS (capture click). */
+.ads-lock-overlay{
+  position:fixed; inset:0; background:rgba(0,0,0,.0);
+  display:none; z-index:9;
+  pointer-events:none;
+  touch-action:pan-y;
+}
+body.ads-locked .ads-lock-overlay{ display:block; background:rgba(0,0,0,.35); }
+.ads-lock-pill{
+  position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
+  background:#f59e0b; color:#1a1300; padding:8px 14px; border-radius:999px;
+  font-size:12px; font-weight:700; display:none; z-index:11;
+  box-shadow:0 6px 20px rgba(245,158,11,.4);
+}
+body.ads-locked .ads-lock-pill{ display:block; }
+
+/* ---------- mobile ---------- */
+@media (max-width: 720px){
+  .ad-row, .ad-row-4{ grid-template-columns:1fr 1fr; }
+  .ads-local > summary{ font-size:13px; padding:12px; }
+  .ads-list{ padding:8px 12px 4px; }
+  .ads-add-btn, .ads-local-save{
+    margin-left:12px; margin-right:12px; width:calc(100% - 24px);
+  }
+  .ads-extra-cfg{ margin:10px 12px; }
+}

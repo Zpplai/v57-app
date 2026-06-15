@@ -1,0 +1,103 @@
+==========================================================
+  ANÚNCIOS DE VERDADE — v37.1 (sem simulação)
+==========================================================
+
+O QUE MUDOU
+-----------
+Antes: o app fingia que estava passando o anúncio (uma barrinha
+"Anúncio em execução 5s") e creditava o usuário sem mostrar nada.
+
+Agora: o anúncio aparece DE VERDADE em uma tela cheia preta com
+um cabeçalho ("📺 Anúncio • aguarde 5s"). O botão "Fechar e
+receber" só libera depois do tempo mínimo. Se você cadastrar
+vários códigos no mesmo local, o sistema dispara TODOS em
+paralelo e usa o PRIMEIRO que carregar (failover automático).
+
+==========================================================
+  COLA — QUAL ID DO BOTÃO USA QUAL "LOCAL" DO ADM
+==========================================================
+
+No painel ADM > Anúncios você cadastra códigos por LOCAL.
+Cada LOCAL alimenta um botão/evento específico do app:
+
+LOCAL no ADM            QUEM DISPARA / ONDE APARECE
+----------------------  ------------------------------------------
+botao-ver-anuncio       Botão "ASSISTIR" da home   →  id="btnAd"
+                        (este é o principal: paga pontos ao usuário,
+                         quantidade definida em "Pontos por anúncio")
+
+rewarded                Fallback do botão ASSISTIR (se "botao-ver-
+                        anuncio" estiver vazio).
+
+abrir-jogo              Quando o usuário entra em um jogo
+                        (botões "JOGAR" → id="btnGoGames" e
+                         cards de jogos no catálogo)
+
+vitoria-online          Fim de partida MULTIPLAYER com vitória
+vitoria-offline         Fim de partida OFFLINE com vitória
+derrota-online          Fim de partida MULTIPLAYER com derrota
+derrota-offline         Fim de partida OFFLINE com derrota
+
+multiplayer             Ao entrar / sair da fila multiplayer
+
+resgate-pix             Antes de processar o saque PIX
+                        (botão "SACAR"   →  id="btnGoWithdraw"
+                         e modal #withdrawModal)
+
+banner-lateral          Banner ao lado do sino 🔔, fixo
+                        Slot:  id="admAdSlot-header"
+
+tela-inicial            Banners de topo/rodapé na home
+                        Slots: id="admAdSlot-top"
+                               id="admAdSlot-bottom"
+
+popup-automatico        Abre sozinho após X segundos
+                        (configurado dentro do próprio local)
+
+interstitial            Genérico — sempre tela cheia
+popunder                Abre aba/janela no fundo (sem UI visível)
+social-bar              Barra fixa do fornecedor (sem UI visível)
+
+
+COMO CADASTRAR (passo a passo)
+------------------------------
+1) Abra /admin.html → aba "Anúncios"
+2) Escolha o LOCAL (ex.: "Ver anúncio recompensado (botão ASSISTIR)")
+3) Clique "➕ Adicionar anúncio em ..."
+4) Cole no campo "Código do anúncio" QUALQUER formato:
+     - URL crua:        //pl12345.adsterra.com/invoke.js
+     - <script src="...">...</script>
+     - <iframe src="..." width="300" height="250"></iframe>
+     - HTML/JS arbitrário
+   O sistema detecta o formato sozinho.
+5) Marque "Habilitado" e clique "💾 Salvar".
+6) (Opcional) cadastre mais de um código no MESMO local —
+   eles entram em failover automático.
+
+DICAS
+-----
+- O usuário NÃO ganha recompensa se tiver AdBlock ativo:
+  aparece um aviso pedindo para desativar.
+- "Pontos por anúncio" fica DENTRO do bloco do local
+  "Ver anúncio recompensado (botão ASSISTIR)".
+- Cooldown / Máx. views / Prioridade / Chance % funcionam
+  por anúncio cadastrado.
+- Se NADA estiver cadastrado em "botao-ver-anuncio", o app
+  NÃO usa teste/simulador: mostra um aviso de falta de anúncio
+  e não credita recompensa.
+- Os eventos dos games agora usam os locais certos do ADM:
+  abrir-jogo, vitoria-online/offline e derrota-online/offline.
+- O banner do sino fica maior, do lado do sino até a outra ponta.
+- Campos de edição aceitam aumentar para cima/baixo, mas não
+  podem ser puxados para os lados.
+
+IDS IMPORTANTES NO HTML (para referência rápida)
+------------------------------------------------
+#btnAd                → botão ASSISTIR (dispara botao-ver-anuncio)
+#btnGoWithdraw        → botão SACAR (dispara resgate-pix)
+#btnGoGames           → botão JOGAR (dispara abrir-jogo)
+#admAdSlot-header     → banner ao lado do sino (banner-lateral)
+#admAdSlot-top        → banner topo da home (tela-inicial)
+#admAdSlot-bottom     → banner rodapé da home (tela-inicial)
+#realAdOverlay        → overlay full-screen do anúncio (criado em runtime)
+#adOverlay            → overlay legado (não é mais usado)

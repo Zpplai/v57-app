@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#1a0b3d" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Retro Station" />
+<title>Retro Station</title>
+<link rel="manifest" href="./manifest.json" />
+<link rel="icon" href="./icons/icon-192.png" />
+<link rel="apple-touch-icon" href="./icons/icon-192.png" />
+<link rel="stylesheet" href="./css/styles.css" />
+<link rel="stylesheet" href="./css/ads.css" />
+<link rel="stylesheet" href="./css/animations.css" />
+<link rel="stylesheet" href="./css/follow-and-anims.css" />
+<script src="./coracao/popup-guard.js"></script>
+<script src="./coracao/rs-webgl-guard.js"></script>
+
+
+<script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+<script>eruda.init();</script>
+
+
+
+<style id="ads-premium-style">
+.ads-page,
+.reward-container,
+.ad-card,
+.ads-container{
+background:
+linear-gradient(145deg,#08111f,#0d1730 45%,#111d3b);
+border:1px solid rgba(255,255,255,.08);
+box-shadow:
+0 10px 40px rgba(0,0,0,.45),
+inset 0 1px 0 rgba(255,255,255,.04);
+border-radius:28px;
+padding:22px;
+backdrop-filter:blur(14px);
+}
+
+.reward-container{
+margin:20px;
+position:relative;
+overflow:hidden;
+}
+
+.reward-container::before{
+content:'';
+position:absolute;
+top:-120px;
+right:-120px;
+width:240px;
+height:240px;
+background:radial-gradient(circle,#5f7dff66,transparent 70%);
+}
+
+.ad-card h2{
+font-size:28px;
+margin-bottom:8px;
+color:#fff;
+font-weight:800;
+}
+
+.ad-card p{
+color:#c7d2ff;
+font-size:15px;
+line-height:1.5;
+}
+
+#watchAdBtn{
+width:100%;
+margin-top:18px;
+border:none;
+border-radius:22px;
+padding:18px;
+font-size:20px;
+font-weight:800;
+letter-spacing:.5px;
+cursor:pointer;
+color:#fff;
+background:
+linear-gradient(135deg,#5d7cff,#7d57ff 55%,#a84dff);
+box-shadow:
+0 8px 25px rgba(105,93,255,.45),
+inset 0 1px 0 rgba(255,255,255,.25);
+transition:.25s ease;
+}
+
+#watchAdBtn:hover{
+transform:translateY(-3px) scale(1.01);
+}
+
+#watchAdBtn:active{
+transform:scale(.98);
+}
+
+#watchAdBtn:disabled{
+opacity:.75;
+cursor:not-allowed;
+transform:none;
+}
+
+.ads-title{
+font-size:34px;
+font-weight:900;
+color:white;
+margin-bottom:10px;
+}
+
+.ads-subtitle{
+font-size:15px;
+color:#b9c7ff;
+margin-bottom:18px;
+}
+
+.premium-badge{
+display:inline-flex;
+align-items:center;
+gap:8px;
+padding:10px 16px;
+border-radius:999px;
+background:rgba(125,87,255,.15);
+border:1px solid rgba(125,87,255,.35);
+color:#d7ccff;
+font-weight:700;
+margin-bottom:16px;
+}
+
+.version-badge{
+position:fixed;
+bottom:14px;
+right:14px;
+padding:10px 16px;
+border-radius:999px;
+background:#0e1730;
+border:1px solid rgba(255,255,255,.08);
+color:#7ea2ff;
+font-weight:800;
+z-index:99999;
+box-shadow:0 10px 25px rgba(0,0,0,.45);
+}
+</style>
+
+
+<style id="rs-v40-tweaks">
+  /* v40: bloqueia menu de copiar (long-press) e seleção em itens não-texto */
+  html, body { -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+  body, button, .card, nav, header, .screen { -webkit-user-select: none; user-select: none; }
+  /* mas mantém seleção em campos de texto / leitura */
+  input, textarea, [contenteditable="true"], .selectable, p, h1, h2, h3, h4, li, span.allow-copy {
+    -webkit-user-select: text; user-select: text; -webkit-touch-callout: default;
+  }
+</style>
+
+  <link rel="stylesheet" href="./css/theme-purple-gold.css" />
+  <link rel="stylesheet" href="./css/login-redesign.css" />
+</head>
+<body>
+<div class="stars"></div>
+
+<!-- Slot de anúncio (topo da página) - banner v53.4 -->
+<div id="admAdSlot-top" class="rs-ad-banner" style="width:100%;min-height:60px;display:flex;align-items:center;justify-content:center;margin:8px 0"></div>
+
+<div id="loader" class="loader hidden">
+  <div class="loader-box">
+    <div class="spinner"></div>
+    <p id="loaderText">Carregando...</p>
+  </div>
+</div>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<div id="maintenanceScreen" class="maintenance-screen hidden" role="alert" aria-live="assertive">
+  <div class="maintenance-box">
+    <div class="maintenance-icon">🛠️</div>
+    <h1>Sistema em manutenção</h1>
+    <p id="maintenanceMsg">Sistema em manutenção, tente novamente mais tarde.</p>
+  </div>
+</div>
+
+<div id="cookieBanner" class="cookie-banner hidden">
+  <p>Usamos cookies para melhorar sua experiência. Ao continuar, você concorda com nossa <a href="#" id="cookiePrivacy" style="color:#22d3ee;text-decoration:underline">Política de Privacidade</a>.</p>
+  <div class="cookie-actions">
+    <button class="btn btn-ghost" id="cookieReject">Recusar</button>
+    <button class="btn btn-primary" id="cookieAccept">Aceitar</button>
+  </div>
+</div>
+
+<div id="privacyModal" class="ad-overlay hidden">
+  <div class="ad-box" style="max-width:480px;max-height:80vh;overflow:auto;text-align:left">
+    <p class="ad-title">🔒 Política de Privacidade</p>
+    <p class="muted" style="font-size:13px;line-height:1.5">
+      O <b>Retro Station</b> coleta apenas dados necessários ao funcionamento do app:
+      e-mail, nome, código de convite e dados Pix (titular, tipo, chave, banco) para
+      processar saques. Senhas nunca são armazenadas — somente hash criptográfico via
+      Firebase Auth.
+    </p>
+    <p class="muted" style="font-size:13px;line-height:1.5;margin-top:8px">
+      <b>Cookies/armazenamento local:</b> usados para manter sua sessão, preferências
+      (tema, vibração, posição do mascote) e cache do app. Você pode limpar a qualquer
+      momento em Perfil → 🧹 Limpar cache.
+    </p>
+    <p class="muted" style="font-size:13px;line-height:1.5;margin-top:8px">
+      <b>Compartilhamento:</b> não vendemos seus dados. Compartilhamos apenas com
+      Firebase/Google (provedor de infraestrutura) e o banco do seu Pix no momento do saque.
+    </p>
+    <p class="muted" style="font-size:13px;line-height:1.5;margin-top:8px">
+      <b>Seus direitos (LGPD):</b> acesso, correção e exclusão dos seus dados. Solicite
+      pelo botão "Falar com humano" no mascote 💰 ou pelo Suporte.
+    </p>
+    <button class="btn btn-primary block" id="privacyClose" style="margin-top:12px">Entendi</button>
+  </div>
+</div>
+
+<!-- AUTH SCREEN -->
+<section id="screenAuth" class="screen">
+  <!-- v37-19: banner ÚNICO da tela de login no TOPO, fora do card -->
+  <div id="loginAdSlot" class="adm-ad-slot ads-loading" style="width:100%;max-width:520px;margin:12px auto 16px;align-self:center;order:-1"></div>
+  <div class="card auth-card">
+    <div class="logo-box"><img src="./icons/icon-192.png" alt="Retro Station" /></div>
+
+    <div id="loginForm">
+      <h1 class="title">Entrar <span>🎮</span></h1>
+      <div class="field"><input type="email" id="loginEmail" placeholder="Seu e-mail" autocomplete="email" /></div>
+      <div class="field pwd">
+        <input type="password" id="loginPass" placeholder="Sua senha" autocomplete="current-password" />
+        <button type="button" class="eye" data-target="loginPass" aria-label="Mostrar senha">👁</button>
+      </div>
+      <label class="remember">
+        <input type="checkbox" id="rememberMe" checked />
+        <span>Lembrar de mim</span>
+      </label>
+      <button class="btn btn-primary block" id="btnLogin">ENTRAR</button>
+      <button class="btn btn-light block" id="btnGoogleLogin">
+        <span class="g-ico">G</span> ENTRAR COM GOOGLE
+      </button>
+      <p class="switch-link"><a href="#" id="goForgot">🔑 Esqueci minha senha</a></p>
+      <p class="switch-link">Não tem conta? <a href="#" id="goSignup">Cadastre-se 🚀</a></p>
+    </div>
+
+    <div id="forgotForm" class="hidden">
+      <h1 class="title">Recuperar senha <span>🔑</span></h1>
+      <p class="muted center" style="margin-bottom:12px">Digite seu e-mail. Vamos enviar um link para redefinir a senha.</p>
+      <div class="field"><input type="email" id="forgotEmail" placeholder="Seu e-mail" autocomplete="email" /></div>
+      <button class="btn btn-primary block" id="btnForgot">ENVIAR LINK</button>
+      <p class="switch-link"><a href="#" id="backToLogin">← Voltar ao login</a></p>
+    </div>
+
+    <div id="signupForm" class="hidden">
+      <h1 class="title">Criar conta <span>🚀</span></h1>
+      <div class="field"><input type="text" id="suName" placeholder="Seu nome completo" autocomplete="name" /></div>
+      <div class="field"><input type="email" id="suEmail" placeholder="Seu e-mail" autocomplete="email" /></div>
+      <div class="field pwd">
+        <input type="password" id="suPass" placeholder="Senha (mín. 6 caracteres)" autocomplete="new-password" />
+        <button type="button" class="eye" data-target="suPass" aria-label="Mostrar senha">👁</button>
+      </div>
+
+      <div class="section-title">Dados do Pix 💰</div>
+      <div class="field"><input type="text" id="pixHolder" placeholder="Nome do titular da conta" /></div>
+      <div class="field">
+        <select id="pixType">
+          <option value="">Tipo de chave Pix</option>
+          <option value="cpf">CPF</option>
+          <option value="phone">Telefone</option>
+          <option value="email">E-mail</option>
+          <option value="random">Chave aleatória</option>
+        </select>
+      </div>
+      <div class="field">
+        <input type="text" id="pixKey" placeholder="Escolha o tipo de chave primeiro" disabled />
+      </div>
+
+      <div class="field bank-field">
+        <input type="text" id="pixBank" placeholder="Banco" autocomplete="off" />
+        <div id="bankSuggestions" class="bank-suggestions hidden"></div>
+      </div>
+
+      <div class="field"><input type="text" id="suInvite" placeholder="Código de convite (opcional)" /></div>
+
+      <button class="btn btn-primary block" id="btnSignup">CRIAR CONTA</button>
+      <button class="btn btn-light block" id="btnGoogleSignup">
+        <span class="g-ico">G</span> CADASTRAR COM GOOGLE
+      </button>
+      <p class="switch-link">Já tem conta? <a href="#" id="goLogin">Entrar 🎮</a></p>
+    </div>
+
+    <nav class="auth-legal-links" style="margin-top:18px;display:flex;flex-wrap:wrap;gap:8px 14px;justify-content:center;font-size:12px">
+      <a href="./sobre.html" style="color:#9fb6cf;text-decoration:none">Sobre Nós</a>
+      <a href="./como-funciona.html" style="color:#9fb6cf;text-decoration:none">Como Funciona</a>
+      <a href="./regras-pontos.html" style="color:#9fb6cf;text-decoration:none">Regras de Pontos</a>
+      <a href="./saques.html" style="color:#9fb6cf;text-decoration:none">Saques</a>
+      <a href="./faq.html" style="color:#9fb6cf;text-decoration:none">FAQ</a>
+      <a href="./privacidade.html" style="color:#9fb6cf;text-decoration:none">Privacidade</a>
+      <a href="./termos.html" style="color:#9fb6cf;text-decoration:none">Termos de Uso</a>
+      <a href="./contato.html" style="color:#9fb6cf;text-decoration:none">Contato</a>
+    </nav>
+  </div>
+
+<!-- v40: FAQ / informações na tela de login -->
+<section class="auth-faq" style="max-width:520px;margin:18px auto 40px;padding:0 14px;color:#cbd5e1;font-size:14px">
+  <h2 style="font-size:18px;text-align:center;margin:18px 0 10px">❓ Perguntas frequentes</h2>
+  <details style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:10px 12px;margin-bottom:8px">
+    <summary style="cursor:pointer;font-weight:700">Como funciona o Retro Station?</summary>
+    <p style="margin:8px 0 0;line-height:1.5">Você ganha pontos jogando, completando tarefas e indicando amigos. Os pontos podem ser trocados por dinheiro via Pix.</p>
+  </details>
+  <details style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:10px 12px;margin-bottom:8px">
+    <summary style="cursor:pointer;font-weight:700">É grátis?</summary>
+    <p style="margin:8px 0 0;line-height:1.5">Sim, 100% grátis. Receita vem de anúncios — por isso eles aparecem entre partidas.</p>
+  </details>
+  <details style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:10px 12px;margin-bottom:8px">
+    <summary style="cursor:pointer;font-weight:700">Como faço para sacar?</summary>
+    <p style="margin:8px 0 0;line-height:1.5">Após criar a conta, cadastre sua chave Pix. A janela de saque abre toda <b>sexta-feira</b>. Mínimo configurado pelo admin.</p>
+  </details>
+  <details style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:10px 12px;margin-bottom:8px">
+    <summary style="cursor:pointer;font-weight:700">Esqueci minha senha</summary>
+    <p style="margin:8px 0 0;line-height:1.5">Clique em "🔑 Esqueci minha senha" acima — vamos te enviar um link de redefinição por e-mail.</p>
+  </details>
+  <details style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:10px 12px;margin-bottom:8px">
+    <summary style="cursor:pointer;font-weight:700">Posso usar em mais de um aparelho?</summary>
+    <p style="margin:8px 0 0;line-height:1.5">Cada conta é vinculada a um aparelho principal para evitar fraudes. Você pode trocar pedindo no Suporte.</p>
+  </details>
+  <p style="text-align:center;margin-top:14px;font-size:12px;color:#94a3b8">
+    <a href="./faq.html" style="color:#7dd3fc">📖 Ver FAQ completo</a> ·
+    <a href="./termos.html" style="color:#7dd3fc">Termos</a> ·
+    <a href="./privacidade.html" style="color:#7dd3fc">Privacidade</a> ·
+    <a href="./contato.html" style="color:#7dd3fc">Contato</a>
+  </p>
+</section>
+
+</section>
+
+
+<!-- INSTALL GATE -->
+<section id="screenInstall" class="screen hidden">
+  <div class="card install-card">
+    <div class="logo-box small"><img src="./icons/icon-192.png" alt="" /></div>
+    <h1 class="title">Instale o App <span>📲</span></h1>
+    <p class="muted">Para usar o Retro Station, é necessário instalar o aplicativo. Após a instalação o site fecha e você deve abrir somente pelo ícone na tela inicial.</p>
+    <button class="btn btn-primary block" id="btnInstall">⬇ BAIXAR APP</button>
+    <div class="howto">
+      <p><strong>Android:</strong> toque em "Baixar App" e confirme.</p>
+      <p><strong>iPhone (Safari):</strong> Compartilhar → "Adicionar à Tela de Início".</p>
+      <p><strong>Desktop:</strong> ícone de instalação na barra de endereço.</p>
+    </div>
+    <button class="btn btn-ghost block" id="btnLogoutInstall">Sair</button>
+  </div>
+</section>
+
+<div id="installConfirm" class="ad-overlay hidden">
+  <div class="ad-box">
+    <p class="ad-title">📲 Deseja instalar o aplicativo?</p>
+    <p class="muted">Após instalar, o site fechará automaticamente. O app só abrirá pelo ícone na tela inicial.</p>
+    <button class="btn btn-success block" id="btnInstallYes">SIM, INSTALAR</button>
+    <button class="btn btn-ghost block" id="btnInstallNo">Cancelar</button>
+  </div>
+</div>
+
+<!-- APP HOME -->
+<section id="screenApp" class="screen hidden">
+  <!-- Barra de status: relógio + bateria (visível mesmo com a barra do sistema escondida) -->
+  <div id="rsStatusBar" style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:3px 12px;font-size:12px;font-weight:600;color:#e6e9ef;background:rgba(0,0,0,.55);letter-spacing:.3px;font-variant-numeric:tabular-nums;padding-top:max(3px,env(safe-area-inset-top))">
+    <span id="rsClock" aria-label="Relógio">--:--</span>
+    <span id="rsWifi" aria-label="Conexão" style="display:flex;align-items:center;gap:4px">📶 Online</span>
+    <span id="rsBattery" aria-label="Bateria" style="display:flex;align-items:center;gap:4px">🔋 --%</span>
+  </div>
+  <div id="rs-banner-top" aria-label="Publicidade">
+    <div class="rs-banner-placeholder"><span>Carregando patrocinador...</span></div>
+  </div>
+  <header class="app-header">
+    <div class="user" style="visibility:hidden;width:0;height:0;margin:0;padding:0"></div>
+    <div style="display:flex;gap:8px;align-items:center;margin-left:0;width:100%">
+      <div id="admAdSlot-header" class="adm-ad-slot adm-ad-slot-header" style="flex:1 1 auto;width:100%;max-width:none;min-width:0;height:90px;max-height:90px;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:8px;contain:strict"></div>
+      <button id="btnBell" class="bell-btn" aria-label="Notificações" style="background:rgba(0,0,0,.5);border:0;color:#fff;cursor:pointer;position:relative;font-size:28px;padding:8px;border-radius:50%">
+        🔔<span id="bellBadge" style="display:none;position:absolute;top:-2px;right:-2px;background:#ef4444;color:#fff;font-size:11px;font-weight:700;border-radius:10px;padding:2px 6px;min-width:18px;text-align:center">0</span>
+      </button>
+    </div>
+  </header>
+
+  <div id="swiper" class="swiper">
+    <div class="swiper-track" id="swipeTrack">
+
+      <!-- PAGE 0: HOME -->
+      <div class="swipe-page" data-page="0">
+        <div class="balance-card">
+          <div class="balance-top">
+            <p class="balance-label">Seu Saldo
+              <button id="btnHideBalance" class="eye-btn" title="Esconder/Mostrar saldo">👁</button>
+            </p>
+            <button id="btnGoHistoryTop" class="extract-btn" title="Extrato">📜 Extrato</button>
+          </div>
+          <p class="balance-value"><span id="balance" class="balance-num">R$ 0,00</span></p>
+          <button class="btn btn-success" id="btnGoWithdraw">💸 SACAR</button>
+        </div>
+
+        <!-- Pontuação (movida para o topo, logo abaixo do saldo) -->
+        <div class="points-row points-row-top">
+          <div><span class="muted">Pontuação</span> <strong id="userPoints">0</strong> pts</div>
+          <button class="btn btn-success sm" id="btnExchange">💱 TROCAR POR R$</button>
+        </div>
+
+        <!-- Widget: 1º lugar do mês -->
+        <div id="leaderBox" class="leader-box">
+          <div class="leader-empty">🏆 Carregando ranking do mês...</div>
+        </div>
+
+        <div class="grid">
+          <div class="mini-card">
+            <div class="emoji">📅</div>
+            <h3>Login Diário</h3>
+            <p class="muted">+R$ 0,50</p>
+            <button class="btn btn-muted" id="btnDaily">RESGATAR</button>
+          </div>
+          <div class="mini-card">
+            <div class="emoji">📺</div>
+            <h3>Ver Anúncio</h3>
+            <p class="muted">+R$ 0,10</p>
+            <button class="btn btn-primary" id="btnAd">ASSISTIR</button>
+          </div>
+          <div class="mini-card">
+            <div class="emoji">👥</div>
+            <h3>Convide Amigos</h3>
+            <p class="muted">+R$ 0,15 por amigo</p>
+            <button class="btn btn-success sm" id="btnInvite">MEU LINK</button>
+          </div>
+          <div class="mini-card">
+            <div class="emoji">🎮</div>
+            <h3>Mini Games</h3>
+            <p class="muted">Deslize para Games →</p>
+            <button class="btn btn-orange" id="btnGoGames">JOGAR</button>
+          </div>
+          <div class="mini-card">
+            <div class="emoji">📜</div>
+            <h3>Histórico</h3>
+            <p class="muted">Ver tudo</p>
+            <button class="btn btn-primary sm" id="btnGoHistory">ABRIR</button>
+          </div>
+          <div class="mini-card">
+            <div class="emoji">❓</div>
+            <h3>Ajuda</h3>
+            <p class="muted">Como funciona</p>
+            <button class="btn btn-primary sm" id="btnGoHelp">VER</button>
+          </div>
+          <div class="mini-card">
+            <div class="emoji">🛟</div>
+            <h3>Suporte</h3>
+            <p class="muted">Falar com a equipe</p>
+            <button class="btn btn-primary sm" id="btnSupport">CONTATO</button>
+          </div>
+          <div class="mini-card">
+            <div class="emoji">🎁</div>
+            <h3>Eventos</h3>
+            <p class="muted">Jogos & login</p>
+            <button class="btn btn-orange sm" id="btnGoEvents">VER</button>
+          </div>
+        </div>
+
+        <div class="invite-box">
+          <p class="muted">Seu código de convite</p>
+          <div class="invite-code">
+            <span id="inviteCode">------</span>
+            <button class="btn btn-primary sm" id="btnCopy">COPIAR</button>
+            <button class="btn btn-success sm" id="btnShare" title="Compartilhar com amigos">📤 COMPARTILHAR</button>
+          </div>
+          <p class="muted" style="font-size:11px;margin-top:6px">Quem entrar pelo seu link já fica com seu código preenchido automaticamente.</p>
+        </div>
+      </div>
+
+
+
+      <!-- PAGE 1: GAMES -->
+      <div class="swipe-page" data-page="1">
+        <div class="games-balance">
+          <span>Saldo:</span>
+          <strong><span id="balanceGames">R$ 0,00</span></strong>
+          <button id="btnGoRankingFromGames" class="rk-btn" title="Ranking">🏆</button>
+        </div>
+        <h2 class="page-title">🎮 Mini Games</h2>
+        <div class="games-grid">
+          <button class="game-card" data-game="dice"><div class="emoji">🎲</div><h3>Dado da Sorte</h3><p class="muted">Fácil</p></button>
+          <button class="game-card" data-game="roulette"><div class="emoji">🎡</div><h3>Roleta</h3><p class="muted">Médio</p></button>
+          <button class="game-card" data-game="pair"><div class="emoji">🃏</div><h3>Acertar o Par</h3><p class="muted">Médio</p></button>
+          <button class="game-card" data-game="random"><div class="emoji">🎰</div><h3>Número 1-10</h3><p class="muted">Difícil</p></button>
+          <button class="game-card" data-game="memory"><div class="emoji">🧠</div><h3>Memória</h3><p class="muted">Muito difícil</p></button>
+          <button class="game-card" data-game="jackpot"><div class="emoji">💎</div><h3>Jackpot</h3><p class="muted">Extremo</p></button>
+          <button class="game-card" data-game="rps"><div class="emoji">✊</div><h3>Pedra Papel Tesoura</h3><p class="muted">Fácil</p></button>
+          <button class="game-card" data-game="higher"><div class="emoji">⬆️</div><h3>Maior ou Menor</h3><p class="muted">Médio</p></button>
+          <button class="game-card" data-game="tap"><div class="emoji">⚡</div><h3>Tap Rápido</h3><p class="muted">Médio</p></button>
+          <button class="game-card" data-game="quiz"><div class="emoji">❓</div><h3>Quiz Relâmpago</h3><p class="muted">Difícil</p></button>
+         <button class="game-card" data-game="scratch"><div class="emoji">🪙</div><h3>Raspadinha</h3><p class="muted">Difícil</p></button>
+         <button class="game-card" data-game="coin"><div class="emoji">🪙</div><h3>Cara ou Coroa</h3><p class="muted">Fácil</p></button>
+         <button class="game-card" data-game="color"><div class="emoji">🎨</div><h3>Adivinhe a Cor</h3><p class="muted">Médio</p></button>
+         <button class="game-card" data-game="ladder"><div class="emoji">🪜</div><h3>Escada da Sorte</h3><p class="muted">Muito difícil</p></button>
+         <button class="game-card" data-game="math"><div class="emoji">🧮</div><h3>Conta Rápida</h3><p class="muted">Médio</p></button>
+         <button class="game-card" data-game="rouletteColor"><div class="emoji">🎨</div><h3>Roleta das Cores</h3><p class="muted">Médio</p></button>
+         <button class="game-card" data-game="duel" style="background:linear-gradient(135deg,#08344a,#0b1f33);border:2px solid #22d3ee"><div class="emoji">⚔️</div><h3>Multiplayer (PvP)</h3><p class="muted">Jogo da Velha • Aposta real</p></button>
+         <button class="game-card" data-game="race"><div class="emoji">🏎️</div><h3>Corrida de Carros</h3><p class="muted">Médio</p></button>
+         <button class="game-card" data-game="dodge"><div class="emoji">🪙</div><h3>Coletar Moedas</h3><p class="muted">Esquiva bombas</p></button>
+        </div>
+      </div>
+
+      <!-- PAGE 2: ONLINE / MULTIPLAYER -->
+      <div class="swipe-page" data-page="2">
+        <h2 class="page-title">🌐 Jogos Online (Multiplayer)</h2>
+        <div id="mpInlineRoot" class="mp-inline-root">
+          <p class="muted center" style="padding:18px">Carregando multiplayer...</p>
+        </div>
+      </div>
+
+      <!-- PAGE 3: CHAT GLOBAL -->
+      <div class="swipe-page" data-page="3">
+        <h2 class="page-title">💬 Chat Global</h2>
+        <div id="chatGlobalRoot" class="chat-global-host">
+          <p class="muted center" style="padding:18px">Carregando chat...</p>
+        </div>
+      </div>
+
+      <!-- PAGE 4: RANKING -->
+      <div class="swipe-page" data-page="4">
+        <h2 class="page-title">🏆 Ranking do mês</h2>
+        <p class="muted center" style="margin-top:-4px">Os melhores do mês ficam no topo. Jogue para subir!</p>
+        <div id="rankingList" class="ranking-list" style="max-height:none"><p class="muted center">Carregando ranking...</p></div>
+      </div>
+
+      <!-- PAGE 5: PROFILE -->
+      <div class="swipe-page" data-page="5">
+        <h2 class="page-title">👤 Meu Perfil</h2>
+        <div class="card">
+          <div id="profileView">
+            <!-- Saudação (movida do header para a tela de configuração) -->
+            <div class="profile-greeting">
+              <div class="profile-greeting-avatar"><img id="pfAvatarImg" src="./icons/icon-192.png" alt="" referrerpolicy="no-referrer" /></div>
+              <div class="profile-greeting-text">
+                Olá, <span id="userName">jogador</span> 👋
+              </div>
+            </div>
+
+            <details class="cfg-group" open>
+              <summary>📇 Dados pessoais</summary>
+              <div class="cfg-body">
+            <p class="profile-row"><strong>Nome:</strong> <span id="pfName">—</span></p>
+            <p class="profile-row"><strong>E-mail:</strong> <span id="pfEmail">—</span></p>
+            <p class="profile-row"><strong>Código de convite:</strong> <span id="pfCode">—</span></p>
+              </div>
+            </details>
+
+            <details class="cfg-group">
+              <summary>💰 Dados do Pix</summary>
+              <div class="cfg-body">
+            <p class="profile-row"><strong>Titular:</strong> <span id="pfHolder">—</span></p>
+            <p class="profile-row"><strong>Tipo:</strong> <span id="pfType">—</span></p>
+            <p class="profile-row"><strong>Chave:</strong> <span id="pfKey">—</span></p>
+            <p class="profile-row"><strong>Banco:</strong> <span id="pfBank">—</span></p>
+
+            <p class="muted" id="pfEditInfo" style="margin-top:14px;text-align:center"></p>
+            <button class="btn btn-primary block" id="btnEditProfile">✏️ EDITAR DADOS</button>
+              </div>
+            </details>
+
+            <details class="cfg-group">
+              <summary>📳 Vibração</summary>
+              <div class="cfg-body">
+            <p class="muted" style="margin:2px 0 8px">Controle separado para o aplicativo e para os mini games.</p>
+
+            <label class="remember" style="justify-content:space-between">
+              <span>📱 Vibrar no aplicativo (toques, botões)</span>
+              <input type="checkbox" id="vibeAppOn" />
+            </label>
+            <div class="field">
+              <select id="vibeAppInt">
+                <option value="fraco">App — Intensidade: Fraca</option>
+                <option value="medio" selected>App — Intensidade: Média</option>
+                <option value="forte">App — Intensidade: Forte</option>
+              </select>
+            </div>
+
+            <label class="remember" style="justify-content:space-between;margin-top:10px">
+              <span>🎮 Vibrar nos mini games (ganho/perda)</span>
+              <input type="checkbox" id="vibeGameOn" />
+            </label>
+            <div class="field">
+              <select id="vibeGameInt">
+                <option value="fraco">Jogos — Intensidade: Fraca</option>
+                <option value="medio" selected>Jogos — Intensidade: Média</option>
+                <option value="forte">Jogos — Intensidade: Forte</option>
+              </select>
+            </div>
+
+            <div class="row-center" style="gap:8px;margin-top:6px">
+              <button class="btn btn-ghost sm" id="vibeTestApp">📱 Testar app</button>
+              <button class="btn btn-ghost sm" id="vibeTestGame">🎮 Testar jogo</button>
+            </div>
+              </div>
+            </details>
+
+            <details class="cfg-group">
+              <summary>🔊 Sons</summary>
+              <div class="cfg-body">
+                <p class="muted" style="margin:2px 0 8px">Liga/desliga os efeitos sonoros do aplicativo.</p>
+                <label class="remember" style="justify-content:space-between">
+                  <span>🔊 Sons do aplicativo (cliques, jogos, moedas)</span>
+                  <input type="checkbox" id="sfxAppOn" />
+                </label>
+                <label class="remember" style="justify-content:space-between;margin-top:10px">
+                  <span>🔔 Som de notificação</span>
+                  <input type="checkbox" id="sfxNotifOn" />
+                </label>
+                <div class="row-center" style="gap:8px;margin-top:8px">
+                  <button class="btn btn-ghost sm" id="sfxTestClick">🔊 Testar som</button>
+                  <button class="btn btn-ghost sm" id="sfxTestNotif">🔔 Testar notificação</button>
+                </div>
+              </div>
+            </details>
+
+            <details class="cfg-group">
+              <summary>🎵 Música dos jogos</summary>
+              <div class="cfg-body">
+                <p class="muted" style="margin:2px 0 8px">A música agora toca apenas <b>dentro dos jogos</b> — você escolhe se quer ouvir. Use o botão 🎵 na tela do jogo para ligar/desligar a qualquer momento, ou ajuste o volume aqui.</p>
+                <label class="remember" style="justify-content:space-between">
+                  <span>🎶 Tocar música nos jogos</span>
+                  <input type="checkbox" id="gameMusicOn" />
+                </label>
+                <div class="field" style="margin-top:8px">
+                  <label for="gameMusicVol" class="muted" style="font-size:12px;display:block;margin-bottom:4px">
+                    Volume: <span id="gameMusicVolLbl">35%</span>
+                  </label>
+                  <input type="range" id="gameMusicVol" min="0" max="100" value="35" style="width:100%" />
+                </div>
+              </div>
+            </details>
+
+            <details class="cfg-group">
+              <summary>🔔 Notificações push</summary>
+              <div class="cfg-body">
+                <p class="muted" style="margin:2px 0 8px">Receba avisos de saques, eventos e prêmios mesmo com o app fechado.</p>
+                <p style="margin:6px 0">Status: <strong id="pfPushStatus">verificando…</strong></p>
+                <button class="btn btn-primary block" id="pfEnablePush">🔔 Permitir notificações</button>
+                <p class="muted" style="margin:8px 0 0;font-size:11px">Se o botão disser “Bloqueado”, libere as notificações no cadeado do navegador e toque de novo.</p>
+              </div>
+            </details>
+
+            <details class="cfg-group">
+              <summary>🧑‍🎤 Avatar</summary>
+              <div class="cfg-body">
+                <p class="muted" style="margin:2px 0 8px">Escolha seu avatar ou use a foto da sua conta Google.</p>
+                <div class="avatar-grid" id="avatarGrid">
+                  <button class="avatar-pick google-avatar-pick" id="avatarGooglePick" data-google="1"><img id="avatarGoogleImg" src="./icons/icon-192.png" alt="Google" referrerpolicy="no-referrer"/><span>Google</span></button>
+                  <button class="avatar-pick" data-av="./icons/avatars/m1.png"><img src="./icons/avatars/m1.png" alt="M1"/></button>
+                  <button class="avatar-pick" data-av="./icons/avatars/m2.png"><img src="./icons/avatars/m2.png" alt="M2"/></button>
+                  <button class="avatar-pick" data-av="./icons/avatars/m3.png"><img src="./icons/avatars/m3.png" alt="M3"/></button>
+                  <button class="avatar-pick" data-av="./icons/avatars/m4.png"><img src="./icons/avatars/m4.png" alt="M4"/></button>
+                  <button class="avatar-pick" data-av="./icons/avatars/f1.png"><img src="./icons/avatars/f1.png" alt="F1"/></button>
+                  <button class="avatar-pick" data-av="./icons/avatars/f2.png"><img src="./icons/avatars/f2.png" alt="F2"/></button>
+                  <button class="avatar-pick" data-av="./icons/avatars/f3.png"><img src="./icons/avatars/f3.png" alt="F3"/></button>
+                  <button class="avatar-pick" data-av="./icons/avatars/f4.png"><img src="./icons/avatars/f4.png" alt="F4"/></button>
+                </div>
+              </div>
+            </details>
+
+            <details class="cfg-group">
+              <summary>🎨 Aparência</summary>
+              <div class="cfg-body">
+            <p class="muted" style="margin:2px 0 8px">Escolha o tema do aplicativo.</p>
+            <div class="row-center" style="gap:8px">
+              <button class="btn btn-ghost sm" id="themeDarkBtn">🌙 Escuro</button>
+              <button class="btn btn-ghost sm" id="themeLightBtn">☀️ Claro</button>
+            </div>
+              </div>
+            </details>
+
+            <details class="cfg-group">
+              <summary>💰 Ajudante (Moedinha)</summary>
+              <div class="cfg-body">
+            <label class="remember" style="justify-content:space-between">
+              <span>Mostrar mascote flutuante para tirar dúvidas</span>
+              <input type="checkbox" id="mascotOn" checked />
+            </label>
+            <div class="row-center" style="gap:8px;margin-top:8px">
+              <button class="btn btn-ghost sm" id="btnMascotTour">🚀 Refazer tour</button>
+              <button class="btn btn-ghost sm" onclick="window.RS_MASCOT&&window.RS_MASCOT.resetPosition()">📍 Resetar posição</button>
+            </div>
+              </div>
+            </details>
+
+            <details class="cfg-group">
+              <summary>📲 Aplicativo</summary>
+              <div class="cfg-body">
+            <p class="muted" style="margin:2px 0 8px">Instalar é opcional — mas dá pra abrir como app na tela inicial se quiser.</p>
+            <button class="btn btn-primary block" id="btnInstallSettings">⬇ BAIXAR APLICATIVO</button>
+
+            <div class="section-title" id="tgSecTitle" style="display:none">Comunidade 💬</div>
+            <p class="muted" id="tgSecText" style="margin:2px 0 8px;display:none">Entre no nosso grupo oficial do Telegram.</p>
+            <button class="btn btn-outline block" id="btnTelegram" style="display:none;background:#229ED9;color:#fff;border-color:#229ED9">✈️ ENTRAR NO TELEGRAM</button>
+              </div>
+            </details>
+
+            <details class="cfg-group">
+              <summary>🧹 Manutenção</summary>
+              <div class="cfg-body">
+            <p class="muted" style="margin:2px 0 8px">Apaga dados temporários sem deletar sua conta.</p>
+            <button class="btn btn-outline block" id="btnClearCache">🧹 LIMPAR CACHE</button>
+              </div>
+            </details>
+
+            <details class="cfg-group cfg-danger">
+              <summary>⚠️ Zona de perigo</summary>
+              <div class="cfg-body">
+            <p class="muted" style="margin:2px 0 8px">Excluir sua conta apaga seus dados permanentemente. Esta ação não pode ser desfeita.</p>
+            <button class="btn btn-outline block" id="btnDeleteAccount" style="border-color:#ef4444;color:#ef4444">🗑️ EXCLUIR MINHA CONTA</button>
+              </div>
+            </details>
+
+            <!-- Botão de SAIR — sempre no fim da configuração -->
+            <div class="logout-zone">
+              <button class="btn btn-outline block" id="btnLogout" style="border-color:#ef4444;color:#ef4444;font-weight:900">🚪 SAIR DA CONTA</button>
+            </div>
+
+            <p class="muted" style="text-align:center;margin-top:10px;font-size:12px">
+              <a href="#" id="profilePrivacy" style="color:#22d3ee">🔒 Política de Privacidade</a>
+            </p>
+            <p class="muted" style="text-align:center;margin-top:14px;font-size:11px;color:#64748b">
+              Retro Station · Versão <span id="appVersion">37.9.20</span>
+              <br/><span style="color:#f59e0b;font-weight:700">⚠️ Lembrete: atualize a versão a cada nova alteração!</span>
+            </p>
+          </div>
+
+
+          <div id="profileEdit" class="hidden">
+            <div class="section-title">Editar dados</div>
+            <div class="field"><input type="text" id="efName" placeholder="Seu nome completo" /></div>
+
+            <div class="section-title">Dados do Pix 💰</div>
+            <div class="field"><input type="text" id="efHolder" placeholder="Nome do titular" /></div>
+            <div class="field">
+              <select id="efType">
+                <option value="">Tipo de chave Pix</option>
+                <option value="cpf">CPF</option>
+                <option value="phone">Telefone</option>
+                <option value="email">E-mail</option>
+                <option value="random">Chave aleatória</option>
+              </select>
+            </div>
+            <div class="field"><input type="text" id="efKey" placeholder="Escolha o tipo de chave primeiro" disabled /></div>
+            <div class="field bank-field">
+              <input type="text" id="efBank" placeholder="Banco" autocomplete="off" />
+              <div id="efBankSuggestions" class="bank-suggestions hidden"></div>
+            </div>
+
+            <button class="btn btn-success block" id="btnSaveProfile">💾 SALVAR ALTERAÇÕES</button>
+            <button class="btn btn-ghost block" id="btnCancelEdit">Cancelar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <nav class="bottom-nav">
+    <button class="nav-btn active" data-page="0" title="Início">🏠</button>
+    <button class="nav-btn" data-page="1" title="Jogos Offline">🎮</button>
+    <button class="nav-btn" data-page="2" title="Jogos Online">🌐</button>
+    <button class="nav-btn" data-page="3" title="Chat Global">💬</button>
+    <button class="nav-btn" id="navRanking" data-page="4" title="Ranking">🏆</button>
+    <button class="nav-btn" data-page="5" title="Perfil">👤</button>
+  </nav>
+</section>
+
+<!-- PIX SETUP -->
+<section id="screenPixSetup" class="screen hidden">
+  <div class="card auth-card">
+    <div class="logo-box small"><img src="./icons/icon-192.png" alt="" /></div>
+    <h1 class="title">Complete seu cadastro <span>💰</span></h1>
+    <p class="muted">Precisamos dos seus dados Pix para liberar os saques.</p>
+
+    <div class="section-title">Dados do Pix 💰</div>
+    <div class="field"><input type="text" id="psHolder" placeholder="Nome do titular da conta" /></div>
+    <div class="field">
+      <select id="psType">
+        <option value="">Tipo de chave Pix</option>
+        <option value="cpf">CPF</option>
+        <option value="phone">Telefone</option>
+        <option value="email">E-mail</option>
+        <option value="random">Chave aleatória</option>
+      </select>
+    </div>
+    <div class="field"><input type="text" id="psKey" placeholder="Escolha o tipo de chave primeiro" disabled /></div>
+    <div class="field bank-field">
+      <input type="text" id="psBank" placeholder="Banco" autocomplete="off" />
+      <div id="psBankSuggestions" class="bank-suggestions hidden"></div>
+    </div>
+    <div class="field"><input type="text" id="psInvite" placeholder="Código de convite (opcional)" /></div>
+
+    <button class="btn btn-primary block" id="btnSavePix">SALVAR E CONTINUAR</button>
+    <button class="btn btn-ghost block" id="btnLogoutPix">Sair</button>
+  </div>
+</section>
+
+<!-- AD OVERLAY -->
+<div id="adOverlay" class="ad-overlay hidden">
+  <div class="ad-box">
+    <p class="ad-title">📺 Anúncio</p>
+    <div class="ad-fake"><p>Carregando anúncio real…</p></div>
+    <p class="muted">A recompensa só libera quando o anúncio carregar.</p>
+    <button class="btn btn-ghost sm hidden" id="btnAdClose">Fechar</button>
+  </div>
+</div>
+
+<!-- WITHDRAW MODAL -->
+<div id="withdrawModal" class="ad-overlay hidden">
+  <div class="ad-box withdraw-box">
+    <p class="ad-title">💸 Sacar via Pix</p>
+    <p class="muted">Saldo: R$ <span id="withdrawBalance">0,00</span></p>
+
+    <p class="muted center" style="margin:10px 0 2px">Escolha o valor:</p>
+    <p class="muted center" id="withdrawMinInfo" style="margin:0 0 6px;font-size:12px">Mínimo configurado pelo ADM: R$ 5</p>
+    <div class="amount-chips" id="amountChips"></div>
+
+    <div class="pix-confirm" id="pixConfirm">
+      <p class="section-title" style="margin-top:14px">Confirme seus dados Pix</p>
+      <p class="profile-row"><strong>Titular:</strong> <span id="wHolder">—</span></p>
+      <p class="profile-row"><strong>Tipo:</strong> <span id="wType">—</span></p>
+      <p class="profile-row"><strong>Chave:</strong> <span id="wKey">—</span></p>
+      <p class="profile-row"><strong>Banco:</strong> <span id="wBank">—</span></p>
+    </div>
+
+    <div class="terms">
+      <p><strong>⚠️ Termos do Saque</strong></p>
+      <ul>
+        <li>Sem reembolso em caso de chave Pix errada.</li>
+        <li>A responsabilidade dos dados Pix é exclusivamente sua.</li>
+        <li>Confira tudo antes de confirmar — após o envio não é possível reverter.</li>
+        <li>Saques são processados em até 24 horas úteis.</li>
+        <li>Após corrigir os dados, só poderá editar novamente depois de 48 horas.</li>
+      </ul>
+    </div>
+
+    <label class="remember" style="justify-content:center">
+      <input type="checkbox" id="acceptTerms" />
+      <span>Li e <strong>aceito os termos</strong> do saque</span>
+    </label>
+
+    <!-- Verificação humana (anti-bot) -->
+    <div class="human-verify" id="humanVerify" style="margin:14px 0;background:#0a1830;border:1px solid #1e3a5f;border-radius:10px;padding:12px">
+      <p style="margin:0 0 8px;font-weight:700;color:#22d3ee;font-size:13px">🔐 Verificação de segurança</p>
+      <p class="muted" style="margin:0 0 8px;font-size:12px">Para liberar o saque, resolva a operação abaixo:</p>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center">
+        <span id="hvQuestion" style="font-size:18px;font-weight:800;color:#fff;background:#0b1a2b;padding:8px 14px;border-radius:8px;border:1px solid #1e3a5f;letter-spacing:2px">— + —</span>
+        <span style="color:#94a3b8">=</span>
+        <input id="hvAnswer" type="number" inputmode="numeric" style="width:90px;padding:8px;background:#0b1a2b;border:1px solid #1e3a5f;color:#fff;border-radius:8px;font-size:16px;text-align:center" placeholder="?" />
+        <button id="hvRefresh" type="button" class="btn btn-ghost sm" title="Outro desafio">🔄</button>
+      </div>
+      <p id="hvStatus" style="margin:8px 0 0;font-size:12px;text-align:center;color:#94a3b8">Aguardando resposta...</p>
+    </div>
+
+    <button class="btn btn-success block" id="btnConfirmWithdraw" disabled>CONFIRMAR SAQUE</button>
+    <button class="btn btn-outline block" id="btnFixPix">DADOS ERRADOS — CORRIGIR AGORA</button>
+    <button class="btn btn-ghost block" id="btnCancelWithdraw">Cancelar</button>
+  </div>
+</div>
+
+<!-- GAME MODAL -->
+<div id="gameModal" class="ad-overlay hidden">
+  <div class="ad-box game-box">
+    <p class="ad-title" id="gameTitle">🎮 Mini Game</p>
+    <div id="gameArea"></div>
+    <div class="game-actions">
+      <button class="btn btn-ghost" id="btnCloseGame">Fechar</button>
+      <button class="btn btn-ghost" id="gameMusicBtn" type="button" aria-pressed="false" title="Ligar/desligar música deste jogo">🔇 Música: OFF</button>
+    </div>
+  </div>
+</div>
+
+<!-- HISTORY MODAL -->
+<div id="historyModal" class="ad-overlay hidden">
+  <div class="ad-box history-box">
+    <p class="ad-title">📜 Histórico</p>
+    <div class="history-tabs">
+      <button class="tab active" data-tab="all">Tudo</button>
+      <button class="tab" data-tab="game">Jogos</button>
+      <button class="tab" data-tab="invite">Convites</button>
+      <button class="tab" data-tab="withdraw">Saques</button>
+    </div>
+    <div id="historyList" class="history-list"><p class="muted center">Carregando...</p></div>
+    <button class="btn btn-ghost block" id="btnCloseHistory">Fechar</button>
+  </div>
+</div>
+
+<!-- HELP MODAL -->
+<div id="helpModal" class="ad-overlay hidden">
+  <div class="ad-box help-box">
+    <p class="ad-title">❓ Como funciona o Retro Station</p>
+    <div class="help-list">
+      <div class="help-item"><strong>💸 Sacar</strong><p>Saque seu saldo via Pix. Toque em "Sacar", escolha o valor, confira os dados Pix e aceite os termos.</p></div>
+      <div class="help-item"><strong>📅 Login Diário</strong><p>Resgate R$ 0,50 todos os dias. Disponível 1x a cada 24h.</p></div>
+      <div class="help-item"><strong>📺 Ver Anúncio</strong><p>Assista um anúncio curto e ganhe R$ 0,10. Quanto mais anúncios, mais saldo.</p></div>
+      <div class="help-item"><strong>👥 Convidar Amigos</strong><p>Compartilhe seu link. Você ganha R$ 0,15 e seu amigo ganha R$ 0,10 ao se cadastrar.</p></div>
+      <div class="help-item"><strong>🎮 Mini Games</strong><p>Jogue para ganhar de R$ 0,003 até R$ 1,50. Quanto mais difícil o jogo, maior o prêmio.</p></div>
+      <div class="help-item"><strong>🎡 Roleta</strong><p>Prêmios em pontos (250 a 7.500 pts). Anúncios aparecem só a cada 3 giros.</p></div>
+      <div class="help-item"><strong>⚔️ Duelo Online (PvP)</strong><p>Jogador vs jogador. Use o <b>saldo de Duelos</b> (separado do principal). Deposite do seu saldo para apostar.</p></div>
+      <div class="help-item"><strong>👆 Toque para fechar</strong><p>O resultado dos jogos fecha tocando em qualquer lugar.</p></div>
+      <div class="help-item"><strong>📜 Histórico</strong><p>Veja entradas e saídas, com horário e motivo. Inclui convites (entrada/saída), jogos, login diário e anúncios.</p></div>
+      <div class="help-item"><strong>👤 Perfil</strong><p>Edite seus dados pessoais e Pix. Pode editar a cada 48h.</p></div>
+      <div class="help-item"><strong>👁 Esconder saldo</strong><p>Toque no olho ao lado do saldo para esconder o valor.</p></div>
+      <div class="help-item"><strong>🛟 Suporte</strong><p>Fale com o ADM. Botão azul quando há recompensa para resgatar, cinza após resgatar.</p></div>
+      <div class="help-item"><strong>🛡️ Segurança</strong><p>Detectamos auto-click e padrões suspeitos. Conta honesta = saque liberado.</p></div>
+    </div>
+    <button class="btn btn-primary block" id="btnCloseHelp">Entendi</button>
+  </div>
+</div>
+
+<!-- EVENTS MODAL -->
+<div id="eventsModal" class="ad-overlay hidden">
+  <div class="ad-box help-box">
+    <p class="ad-title">🎁 Eventos ativos</p>
+    <div class="help-list">
+      <div class="help-item"><strong>📅 Login diário em dobro (semana)</strong><p>Quando o ADM ativar, o login diário paga o dobro.</p></div>
+      <div class="help-item"><strong>🎮 Mini games com prêmio extra</strong><p>Eventos especiais aumentam os prêmios dos jogos.</p></div>
+      <div class="help-item"><strong>👥 Bônus de convites</strong><p>Convide nas datas de evento e receba bônus extra.</p></div>
+      <p class="muted center">Eventos são liberados pelo ADM e aparecem aqui automaticamente.</p>
+    </div>
+    <button class="btn btn-primary block" id="btnCloseEvents">Fechar</button>
+  </div>
+</div>
+
+<!-- RANKING MODAL -->
+<div id="rankingModal" class="ad-overlay hidden">
+  <div class="ad-box help-box">
+    <p class="ad-title">🏆 Ranking do mês</p>
+    <p class="muted center">Os 3 primeiros recebem prêmios em Pix no fim do mês.</p>
+    <div id="rankingListModal" class="ranking-list"><p class="muted center">Carregando...</p></div>
+    <button class="btn btn-primary block" id="btnCloseRanking">Fechar</button>
+  </div>
+</div>
+
+<!-- GAME RESULT (banner grande no centro) -->
+<div id="gameResult" class="game-result hidden">
+  <div class="game-result-box">
+    <div class="gr-emoji" id="grEmoji">🎉</div>
+    <div class="gr-title" id="grTitle">Você ganhou!</div>
+    <div class="gr-amount" id="grAmount"></div>
+    <div class="gr-extra muted" id="grExtra"></div>
+  </div>
+</div>
+
+<script src="./js/mobile-guard.js"></script>
+<script src="./js/server-config.js"></script>
+<script type="module" src="./coracao/firebase.js"></script>
+<script src="./coracao/admin-bridge.js"></script>
+<script src="./coracao/device-guard.js"></script>
+<script src="./js/clock-guard.js"></script>
+<script src="./js/session-guard.js"></script>
+<script src="./js/theme.js"></script>
+<script src="./js/ranking.js"></script>
+<script src="./js/sounds.js"></script>
+<script src="./coracao/bgmusic.js"></script>
+<script src="./coracao/statusbar.js"></script>
+<!-- fullscreen.js removido v40 (para liberar barra de URL e copiar) -->
+<script src="./js/game-time-guard.js"></script>
+<script src="./js/multiplayer.js"></script>
+<script src="./coracao/matchmaking-v38.js"></script>
+<script src="./coracao/social-v38.js"></script>
+<script src="./js/dama.js"></script>
+<script src="./js/chat-global.js"></script>
+<script src="./coracao/cache-bust.js"></script>
+<script src="./js/mascot.js"></script>
+<!-- ===== INÍCIO: partes modularizadas do app.js ===== -->
+<script src="./coracao/app-parts/perfil-bounce.js"></script>
+<script src="./coracao/app-parts/vibracao.js"></script>
+<script src="./coracao/app-parts/reset-senha.js"></script>
+<!-- LOGIN NOVO (à prova de falhas): liga botões ENTRAR / GOOGLE / ESQUECI -->
+<script src="./coracao/app-parts/login-novo.js"></script>
+<script src="./coracao/app-parts/modo-manutencao.js"></script>
+<script src="./coracao/app-parts/referral.js"></script>
+<script src="./coracao/app-parts/compartilhar.js"></script>
+<script src="./coracao/app-parts/hooks-perfil.js"></script>
+<script src="./coracao/app-parts/anti-loop-rotas.js"></script>
+<script src="./coracao/app-parts/ranking-nav.js"></script>
+<script src="./coracao/app-parts/seletor-avatar.js"></script>
+<!-- ===== FIM: partes modularizadas do app.js ===== -->
+<script type="module" src="./coracao/firebase-core.js"></script>
+<script type="module" src="./js/rs-realtime.js"></script>
+<script type="module" src="./js/network-warnings.js"></script>
+
+<!-- EXCHANGE POINTS MODAL -->
+<div id="exchangeModal" class="ad-overlay hidden">
+  <div class="ad-box help-box">
+    <p class="ad-title">💱 Trocar pontos por R$</p>
+    <p class="muted center" id="exchInfo">A taxa atual aparece abaixo. Não vale muito, mas é seu se quiser.</p>
+    <div class="exch-row"><span>Seus pontos:</span><strong id="exchPts">0</strong></div>
+    <div class="exch-row"><span>Taxa:</span><strong id="exchRate">5.000 pts = R$ 1,00</strong></div>
+    <div class="field"><input type="number" id="exchAmount" min="100" step="100" placeholder="Quantos pontos trocar?" /></div>
+    <div class="exch-row"><span>Você recebe:</span><strong id="exchOut" class="green">R$ 0,00</strong></div>
+    <div class="row-center" style="gap:8px">
+      <button class="btn btn-ghost" id="btnExchCancel">Cancelar</button>
+      <button class="btn btn-success" id="btnExchConfirm">CONFIRMAR</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="./coracao/notifications.js"></script>
+
+<!-- Painel de notificações (drawer) -->
+<div id="notifPanel" style="display:none;position:fixed;top:60px;right:12px;width:420px;max-width:calc(100vw - 24px);max-height:78vh;background:rgba(15,20,34,.96);border:1px solid #2a3550;border-radius:16px;z-index:1000;box-shadow:0 18px 50px #000c,0 0 0 1px rgba(91,140,255,.15);color:#e6e9ef;font-family:system-ui,sans-serif;backdrop-filter:blur(8px);animation:notifPanelIn .25s ease-out">
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid #252b3b">
+    <strong>Notificações</strong>
+    <div style="display:flex;gap:4px;align-items:center">
+      <button id="notifMarkAll" style="background:transparent;color:#5b8cff;border:0;cursor:pointer;font-size:12px">Marcar todas</button>
+      <button id="notifClearRead" title="Apagar as já lidas" style="background:transparent;color:#94a3b8;border:0;cursor:pointer;font-size:12px">Limpar lidas</button>
+      <button id="notifClose" style="background:transparent;color:#fff;border:0;cursor:pointer;font-size:20px;padding:0 6px">×</button>
+    </div>
+  </div>
+  <div id="notifTabs" style="display:flex;gap:0;border-bottom:1px solid #252b3b">
+    <button data-tab="new"  class="notif-tab active" style="flex:1;background:transparent;color:#e6e9ef;border:0;padding:8px;cursor:pointer;font-size:12px;border-bottom:2px solid #5b8cff">🔵 Novas <span id="notifCountNew">0</span></button>
+    <button data-tab="read" class="notif-tab"        style="flex:1;background:transparent;color:#8a93a6;border:0;padding:8px;cursor:pointer;font-size:12px;border-bottom:2px solid transparent">✓ Já lidas <span id="notifCountRead">0</span></button>
+  </div>
+  <div id="notifList" style="overflow-y:auto;max-height:calc(60vh - 88px);padding:8px"></div>
+
+</div>
+<div id="notifBackdrop" style="display:none"></div>
+
+<!-- Permissão de notificação (sem alert) -->
+<div id="notifPermBanner" class="notif-perm hidden">
+  <div class="np-icon">🔔</div>
+  <div class="np-text">
+    <strong>Ative as notificações</strong>
+    <p>Receba avisos de saques, eventos e prêmios em tempo real.</p>
+  </div>
+  <div class="np-actions">
+    <button class="btn btn-ghost sm" id="npLater">Depois</button>
+    <button class="btn btn-primary sm" id="npAllow">Permitir</button>
+  </div>
+</div>
+
+<!-- Tour antigo removido — agora só o tour do mascote (Moedinha) -->
+<script src="./coracao/pwa.js"></script>
+
+<!-- Slot de anúncio (rodapé da página) - banner v53.4 -->
+<div id="admAdSlot-bottom" class="rs-ad-banner" style="width:100%;min-height:60px;display:flex;align-items:center;justify-content:center;margin:8px 0"></div>
+<!-- Sistema de anuncios local (sem Firebase). Veja js/web-ads-rotator.js -->
+
+<!-- Janela de Saque (sexta-feira 00:00 → sábado 00:00) -->
+<script src="./coracao/withdraw-window.js"></script>
+
+<!-- DELETE ACCOUNT MODAL -->
+<div id="deleteAccountModal" class="ad-overlay hidden">
+  <div class="ad-box">
+    <p class="ad-title" style="color:#ef4444">⚠️ Excluir conta</p>
+    <p>Você está prestes a <strong>excluir permanentemente</strong> sua conta do Retro Station.</p>
+    <ul style="font-size:13px;color:#94a3b8;text-align:left;padding-left:20px">
+      <li>Saldo restante será perdido.</li>
+      <li>Histórico, pontos e convites serão apagados.</li>
+      <li>Esta ação é <strong>irreversível</strong>.</li>
+    </ul>
+    <p style="margin-top:10px">Para confirmar, digite <code style="background:#1e293b;padding:2px 6px;border-radius:4px;color:#ef4444">EXCLUIR</code> abaixo:</p>
+    <div class="field"><input id="delAccConfirm" type="text" placeholder="Digite EXCLUIR" autocomplete="off" /></div>
+    <button class="btn btn-outline block" id="btnDelAccConfirm" style="border-color:#ef4444;color:#ef4444" disabled>CONFIRMAR EXCLUSÃO</button>
+    <button class="btn btn-ghost block" id="btnDelAccCancel">Cancelar</button>
+  </div>
+</div>
+
+
+<!-- blocos "Ganhe moedas / Ver anúncio" e badge de versão removidos -->
+<script src="./coracao/mobile-perf.js"></script>
+<script src="./coracao/ads.js"></script>
+<script src="./coracao/ads-flow-v53.js"></script>
+<script src="./coracao/ads-banner-top-v53.js"></script>
+<script src="./coracao/follow-system.js"></script>
+<script src="./coracao/engagement-notifications.js"></script>
+<script src="./coracao/ui-animations.js"></script>
+<script src="./coracao/debug-f12.js"></script>
+</body>
+</html>
+

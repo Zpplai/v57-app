@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://retrostation.app/sitemap.xml

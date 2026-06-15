@@ -1,0 +1,802 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Retro Station — Painel Admin</title>
+<style>
+  :root{--bg:#0b0d12;--panel:#141821;--panel2:#1b2030;--text:#e6e9ef;--muted:#8a93a6;--accent:#5b8cff;--ok:#22c55e;--warn:#f59e0b;--err:#ef4444;--border:#252b3b}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    background:radial-gradient(ellipse at top,#11192a 0%,#0b0d12 60%,#05060a 100%);color:var(--text);min-height:100vh}
+  header{display:flex;justify-content:space-between;align-items:center;padding:14px 20px;background:var(--panel);border-bottom:1px solid var(--border)}
+  header h1{margin:0;font-size:18px}
+  header .who{font-size:13px;color:var(--muted)}
+  nav{display:flex;flex-wrap:nowrap;gap:6px;padding:10px;background:var(--panel2);border-bottom:1px solid var(--border);
+      position:sticky;top:0;z-index:10;overflow-x:auto;scrollbar-width:none}
+  nav::-webkit-scrollbar{display:none}
+  nav button{background:#1f2738;color:var(--muted);border:1px solid var(--border);padding:8px 14px;border-radius:999px;cursor:pointer;font-size:13px;white-space:nowrap;font-weight:600}
+  nav button.active{background:linear-gradient(180deg,#6f9bff,#3b5fcc);color:#fff;border-color:transparent;box-shadow:0 4px 14px rgba(91,140,255,.4)}
+  nav button:hover{color:var(--text)}
+  main{padding:16px;max-width:1400px;margin:0 auto}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:20px}
+  .card{background:linear-gradient(135deg,#1a2030,#141821);border:1px solid var(--border);border-radius:12px;padding:14px;
+        box-shadow:0 4px 14px rgba(0,0,0,.35)}
+  .card .label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+  .card .value{font-size:22px;font-weight:700;margin-top:6px;color:#fff}
+  .card .sub{font-size:12px;color:var(--muted);margin-top:4px}
+  /* Tabelas com scroll horizontal em mobile */
+  .table-wrap{overflow-x:auto;background:var(--panel);border:1px solid var(--border);border-radius:10px}
+  table{width:100%;min-width:560px;border-collapse:collapse;font-size:13px}
+  th,td{padding:10px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap}
+  th{background:var(--panel2);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;position:sticky;top:0}
+  tr:last-child td{border-bottom:0}
+  tr:hover td{background:#1a2030}
+  button.act{background:var(--accent);color:#fff;border:0;padding:7px 12px;border-radius:6px;cursor:pointer;font-size:12px;margin:2px;font-weight:600;min-height:32px}
+  button.act.warn{background:var(--warn)}
+  button.act.err{background:var(--err)}
+  button.act.ok{background:var(--ok)}
+  /* Botões de salvar: ficam escuros por padrão, viram verde apenas quando há
+     alterações não salvas (.dirty). Após salvar, dão um flash rápido e voltam ao escuro. */
+  button.act.save-btn{background:var(--accent);color:#fff;transition:background .2s, box-shadow .2s}
+  button.act.save-btn:hover{filter:brightness(1.1)}
+  button.act.save-btn.dirty{background:var(--ok);box-shadow:0 0 0 2px rgba(34,197,94,.25)}
+  button.act.save-btn.saved{background:#16a34a;box-shadow:0 0 0 3px rgba(34,197,94,.35)}
+  /* Linhas do editor de prêmios com mode-aware (esconde campos não usados) */
+  .game-row[data-mode="fixed"] input[data-f="min"],
+  .game-row[data-mode="fixed"] input[data-f="max"]{display:none}
+  .game-row[data-mode="random"] input[data-f="fixed"]{display:none}
+  .game-row .gm-tag{display:inline-block;min-width:46px;font-weight:800;color:#22d3ee}
+  input,select,textarea{background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:14px;font-family:inherit;min-height:40px}
+  textarea{resize:vertical !important;max-width:100%}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(91,140,255,.2)}
+  .row{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+  .row label{font-size:13px;color:var(--muted)}
+  .section{display:none}
+  .section.active{display:block}
+  .badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;background:var(--panel2);color:var(--muted)}
+  .badge.pending{background:#f59e0b22;color:#f59e0b}
+  .badge.paid{background:#22c55e22;color:#22c55e}
+  .badge.rejected{background:#ef444422;color:#ef4444}
+  .badge.banned{background:#ef444422;color:#ef4444}
+  #login{max-width:380px;margin:60px auto;background:linear-gradient(135deg,#1a2240,#141821);border:1px solid var(--border);
+         border-radius:14px;padding:28px;box-shadow:0 12px 40px rgba(91,140,255,.15)}
+  #login h2{margin-top:0}
+  #login input{width:100%;margin-bottom:10px}
+  #login button{width:100%;background:linear-gradient(180deg,#6f9bff,#3b5fcc);color:#fff;border:0;padding:12px;border-radius:8px;cursor:pointer;font-weight:700;font-size:14px;margin-top:6px}
+  #app{display:none}
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--border);padding:12px 18px;border-radius:10px;font-size:13px;z-index:100;max-width:340px;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+  .toast.err{border-color:var(--err);color:var(--err)}
+  .toast.ok{border-color:var(--ok);color:var(--ok)}
+  pre{background:var(--panel2);padding:10px;border-radius:6px;font-size:11px;overflow:auto;max-height:300px;white-space:pre-wrap;word-break:break-all}
+  .modal{position:fixed;inset:0;background:#000c;display:none;align-items:center;justify-content:center;z-index:50;padding:12px}
+  .modal.show{display:flex}
+  .modal .box{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:20px;max-width:600px;width:100%;max-height:85vh;overflow:auto}
+
+  /* ====== MOBILE — tabelas viram cards (sem scroll horizontal) ====== */
+  @media (max-width: 720px){
+    header{padding:10px 12px;flex-wrap:wrap;gap:8px}
+    header h1{font-size:15px}
+    header .who{width:100%;font-size:11px}
+    nav{padding:8px}
+    nav button{padding:7px 11px;font-size:12px}
+    main{padding:10px}
+    .grid{grid-template-columns:repeat(2,1fr);gap:8px}
+    .card{padding:12px}
+    .card .value{font-size:18px}
+    .card .label{font-size:10px}
+    .row{gap:6px}
+    .row input,.row select,.row textarea{flex:1;min-width:0;font-size:14px}
+    button.act{padding:8px 12px;font-size:12px;min-height:36px}
+    .modal .box{padding:16px}
+
+    /* tabelas responsivas — viram lista de cards */
+    .table-wrap{overflow-x:visible;border:0;background:transparent}
+    table, thead, tbody, th, td, tr { display:block; width:100%; }
+    thead { display:none; }
+    table { min-width:0; }
+    tbody tr {
+      background:var(--panel); border:1px solid var(--border);
+      border-radius:10px; margin-bottom:10px; padding:8px 10px;
+    }
+    tbody td {
+      padding:6px 0; border:0; white-space:normal; word-break:break-word;
+      display:flex; justify-content:space-between; gap:10px; align-items:flex-start;
+      font-size:13px;
+    }
+    tbody td::before {
+      content: attr(data-l);
+      color:var(--muted); font-size:11px; text-transform:uppercase;
+      letter-spacing:.5px; flex-shrink:0; min-width:80px;
+    }
+    tbody td:not([data-l])::before { content:""; min-width:0; }
+    tbody tr:hover td{background:transparent}
+  }
+  @media (max-width: 420px){
+    .grid{grid-template-columns:1fr 1fr}
+    header h1{font-size:14px}
+  }
+
+  /* Rodapé fixo com descrição da página e status da conexão */
+  .page-footer{position:fixed;left:0;right:0;bottom:0;z-index:30;
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:8px 14px;background:rgba(11,13,18,.92);border-top:1px solid var(--border);
+    backdrop-filter:blur(8px);font-size:12.5px;color:var(--muted);
+    padding-bottom:max(8px,env(safe-area-inset-bottom))}
+  .pf-desc{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .pf-status{font-weight:700;letter-spacing:.3px;white-space:nowrap}
+  .pf-status.ok{color:#22c55e}.pf-status.warn{color:#f59e0b}.pf-status.err{color:#ef4444}
+  main{padding-bottom:60px !important}
+
+
+  /* Swipe hint banner abaixo da nav */
+  .swipe-hint{text-align:center;color:var(--muted);font-size:11px;padding:4px 0;
+    background:#0f1320;border-bottom:1px solid var(--border);letter-spacing:.5px}
+  .section.swipe-anim-l{animation:secSlideL .22s ease}
+  .section.swipe-anim-r{animation:secSlideR .22s ease}
+  @keyframes secSlideL{from{transform:translateX(30px);opacity:.2}to{transform:none;opacity:1}}
+  @keyframes secSlideR{from{transform:translateX(-30px);opacity:.2}to{transform:none;opacity:1}}
+  /* Collapse/expand dos cards de anúncio */
+  .ad-item[data-collapsed="1"] .ad-card-body{display:none}
+  .ad-item[data-collapsed="1"] .ad-toggle-ind::after{content:" Abrir"}
+  .ad-item[data-collapsed="0"] .ad-toggle-ind::after{content:" Fechar"}
+  /* Visualizador de dados */
+  #b-viewer table{width:100%;border-collapse:collapse;font-size:12px}
+  #b-viewer th,#b-viewer td{border:1px solid var(--border);padding:6px 8px;text-align:left;vertical-align:top;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #b-viewer th{background:#141a28;position:sticky;top:0}
+  #b-viewer tr:hover td{background:#101728}
+  #b-viewer .vw-wrap{max-height:60vh;overflow:auto;border:1px solid var(--border);border-radius:8px}
+  #b-viewer .vw-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;color:#cbd1de;font-size:13px}
+  /* ====== v37.9.19 — Menu lateral (hambúrguer) para o nav do admin ====== */
+  header{position:sticky;top:0;z-index:50}
+  #menuToggle{margin-right:8px}
+  nav#nav{
+    position:fixed; top:0; left:0; bottom:0;
+    width:min(280px, 82vw);
+    flex-direction:column; flex-wrap:nowrap; gap:4px;
+    padding:14px 12px; overflow-y:auto; overflow-x:hidden;
+    background:linear-gradient(180deg,#141a2a 0%,#0d111c 100%);
+    border-right:1px solid var(--border); border-bottom:0;
+    transform:translateX(-100%); transition:transform .22s ease;
+    z-index:60; box-shadow:8px 0 24px rgba(0,0,0,.5);
+  }
+  nav#nav.open{ transform:translateX(0); }
+  nav#nav .nav-head{
+    display:flex; align-items:center; justify-content:space-between;
+    color:#fff; padding:2px 4px 10px; border-bottom:1px solid var(--border); margin-bottom:6px;
+  }
+  nav#nav button{
+    width:100%; text-align:left; border-radius:10px;
+    padding:11px 14px; font-size:14px;
+  }
+  nav#nav button.active{ background:linear-gradient(90deg,#6f9bff,#3b5fcc); }
+  /* === Tema claro (toggle no header) === */
+  body.light{
+    --bg:#f5f7fb; --panel:#ffffff; --panel2:#eef1f7;
+    --text:#1f2937; --muted:#5b6478; --accent:#3b5fcc;
+    --border:#d6dbe6;
+    background:#f5f7fb !important;
+  }
+  body.light header,
+  body.light nav#nav,
+  body.light .card,
+  body.light .table-wrap{
+    background:var(--panel); color:var(--text); border-color:var(--border);
+  }
+  body.light .card{ background:linear-gradient(135deg,#ffffff,#eef1f7); }
+  body.light .card .value{ color:#0f172a; }
+  body.light th{ background:var(--panel2); color:var(--muted); }
+  body.light tr:hover td{ background:#f0f3fa; }
+  body.light input,body.light select,body.light textarea{
+    background:#ffffff; color:var(--text); border-color:var(--border);
+  }
+  body.light nav#nav button{ background:#eef1f7; color:#1f2937; }
+  body.light nav#nav button.active{ color:#fff; }
+  body.light #menuToggle, body.light #themeToggle{
+    background:#eef1f7; color:#1f2937; border-color:var(--border);
+  }
+</style>
+
+<link rel="stylesheet" href="admin-mobile-fix.css">
+<link rel="stylesheet" href="css/admin-polish.css">
+<link rel="stylesheet" href="css/admin-organize.css">
+<link rel="stylesheet" href="css/admin-fix-v37-13.css">
+<link rel="stylesheet" href="css/admin-fix-v37-16.css">
+<!-- removido v40: admin-fix-v37-17.css forçava tema claro -->
+  <link rel="stylesheet" href="./css/theme-purple-gold.css" />
+</head>
+<body>
+
+<div id="login" style="display:none !important">
+  <h2>Painel Admin</h2>
+  <p style="color:var(--muted);font-size:13px">Faça login com uma conta que tenha a claim <code>admin: true</code> no Firebase.</p>
+  <input id="li-email" type="email" placeholder="email@admin.com" />
+  <input id="li-pass" type="password" placeholder="senha" />
+  <button id="li-go">Entrar</button>
+  <p id="li-err" style="color:var(--err);font-size:12px;margin-top:10px"></p>
+</div>
+
+<div id="app">
+<header>
+  <h1>🛡️ Retro Station — Admin</h1>
+  <button id="menuToggle" aria-label="Abrir menu" aria-expanded="false" style="background:#1f2738;color:#fff;border:1px solid var(--border);border-radius:10px;padding:8px 12px;cursor:pointer;font-size:18px;line-height:1">☰ <span id="menuToggleLbl" style="font-size:13px;font-weight:600">Menu</span></button>
+  <div class="who" style="display:flex;align-items:center;gap:10px">
+    <button id="themeToggle" title="Alternar tema claro/escuro"
+      style="background:#1f2738;color:#fff;border:1px solid var(--border);border-radius:10px;padding:6px 10px;cursor:pointer;font-size:14px">🌙</button>
+    <span><span id="who"></span> · <a href="#" id="logout" style="color:var(--accent)">sair</a></span>
+  </div>
+</header>
+<div id="navBackdrop" style="display:none;position:fixed;inset:0;background:#000a;z-index:40" onclick="document.getElementById('menuToggle')?.click()"></div>
+<nav id="nav" aria-label="Seções do painel">
+  <div class="nav-head">
+    <strong>📂 Seções</strong>
+    <button id="navClose" aria-label="Fechar menu" style="background:transparent;color:#fff;border:0;font-size:22px;cursor:pointer;line-height:1">×</button>
+  </div>
+  <button data-tab="dash" class="active">📊 Dashboard</button>
+  <button data-tab="users">👥 Usuários</button>
+  <button data-tab="withdraws">💸 Saques</button>
+  <button data-tab="suspects">🕵️ Suspeitos</button>
+  <button data-tab="logs">📜 Logs</button>
+  <button data-tab="support">🛟 Suporte</button>
+  <button data-tab="referrals">🎁 Referrals</button>
+  <button data-tab="config">⚙️ Config/Bônus</button>
+  <button data-tab="multiplayer">⚔️ Multiplayer</button>
+  <button data-tab="prizes">🎮 Prêmios</button>
+  <button data-tab="roulette">🎡 Roleta</button>
+  <button data-tab="notify">🔔 Notificações</button>
+  <button data-tab="ads">📣 Anúncios</button>
+  <button data-tab="maint">🧰 Manutenção</button>
+  <button data-tab="notice">📢 Aviso</button>
+  <button data-tab="cache">🧹 Cache</button>
+  <button data-tab="ranking">🏆 Ranking</button>
+  <button data-tab="admins">🛡️ Admins</button>
+  <button data-tab="backup">💾 Backup</button>
+</nav>
+<script>
+(function(){
+  function ready(fn){ document.readyState!=='loading' ? fn() : document.addEventListener('DOMContentLoaded', fn); }
+  ready(() => {
+    const nav = document.getElementById('nav');
+    const back = document.getElementById('navBackdrop');
+    const btn = document.getElementById('menuToggle');
+    const close = document.getElementById('navClose');
+    const lbl = document.getElementById('menuToggleLbl');
+    if (!nav || !btn) return;
+    function setOpen(open){
+      nav.classList.toggle('open', open);
+      back.style.display = open ? 'block' : 'none';
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (lbl){
+        const act = nav.querySelector('button.active');
+        lbl.textContent = open ? 'Fechar' : (act ? act.textContent.trim() : 'Menu');
+      }
+    }
+    btn.addEventListener('click', () => setOpen(!nav.classList.contains('open')));
+    close?.addEventListener('click', () => setOpen(false));
+    nav.addEventListener('click', (e) => {
+      const b = e.target.closest('button[data-tab]');
+      if (b) setOpen(false);
+    });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') setOpen(false); });
+    // v40.1: limpa inline transform deixado por versões antigas
+    try { nav.style.transform = ''; } catch(_){}
+    setOpen(false);
+
+  });
+})();
+</script>
+<main>
+
+  <section id="sec-dash" class="section active">
+    <div class="grid" id="stats-grid"></div>
+    <h3>Atividade recente (últimos saques)</h3>
+    <div id="dash-recent"></div>
+  </section>
+
+  <section id="sec-users" class="section">
+    <div class="row">
+      <input id="u-search" placeholder="Buscar por email/nome/uid" style="flex:1;min-width:240px"/>
+      <select id="u-filter">
+        <option value="all">Todos</option>
+        <option value="banned">Banidos</option>
+        <option value="online">Online (5min)</option>
+        <option value="new">Novos hoje</option>
+      </select>
+      <button class="act" id="u-reload">Recarregar</button>
+    </div>
+    <div class="table-wrap"><table id="u-table"><thead><tr><th>Email</th><th>Nome</th><th>Saldo</th><th>Pontos</th><th>Criado</th><th>Status</th><th>Ações</th></tr></thead><tbody></tbody></table></div>
+  </section>
+
+  <section id="sec-withdraws" class="section">
+    <div class="row">
+      <select id="w-filter"><option value="pending">Pendentes</option><option value="paid">Pagos</option><option value="rejected">Rejeitados</option><option value="all">Todos</option></select>
+      <button class="act" id="w-reload">Recarregar</button>
+    </div>
+    <div class="table-wrap"><table id="w-table"><thead><tr><th>Data</th><th>Usuário</th><th>Valor</th><th>Chave PIX</th><th>Banco</th><th>Status</th><th>Ações</th></tr></thead><tbody></tbody></table></div>
+  </section>
+
+  <section id="sec-suspects" class="section">
+    <p style="color:var(--muted)">Usuários com flags de fraude, multi-conta detectada ou IP compartilhado.</p>
+    <div class="table-wrap"><table id="s-table"><thead><tr><th>Email</th><th>Flags</th><th>Devices</th><th>IPs</th><th>Ações</th></tr></thead><tbody></tbody></table></div>
+  </section>
+
+  <section id="sec-logs" class="section">
+    <div class="row">
+      <select id="l-type"><option value="activity_logs">Atividades</option><option value="fraud_logs">Fraude</option></select>
+      <input id="l-uid" placeholder="Filtrar por UID (opcional)"/>
+      <button class="act" id="l-reload">Carregar</button>
+    </div>
+    <div class="table-wrap"><table id="l-table"><thead><tr><th>Data</th><th>UID</th><th>Tipo</th><th>Detalhes</th></tr></thead><tbody></tbody></table></div>
+  </section>
+
+  <section id="sec-support" class="section">
+    <div class="table-wrap"><table id="sp-table"><thead><tr><th>Data</th><th>Usuário</th><th>Mensagem</th><th>Status</th><th>Ações</th></tr></thead><tbody></tbody></table></div>
+  </section>
+
+  <section id="sec-referrals" class="section">
+    <div class="table-wrap"><table id="r-table"><thead><tr><th>Data</th><th>Convidante</th><th>Convidado</th><th>Bônus</th></tr></thead><tbody></tbody></table></div>
+  </section>
+
+  <section id="sec-config" class="section">
+    <h3>Configurações globais</h3>
+    <p style="color:var(--muted);font-size:13px">Valores salvos em <code>config/global</code>. Lidos pelo app em runtime.</p>
+    <div class="row"><label style="width:200px">Conversão pontos → R$</label><input id="cfg-rate" type="number" step="0.0001" placeholder="ex: 0.0002"/></div>
+    <div class="row"><label style="width:200px">Pontos por R$ 1,00</label><input id="cfg-pts-per-real" type="number" step="1" min="1" placeholder="ex: 5000"/></div>
+    <p style="color:var(--muted);font-size:12px;margin:-6px 0 8px 212px">Defina aqui quantos <b>pontos</b> valem <b>R$ 1,00</b>. Padrão: <code>5000</code> pts = R$ 1,00. Os dois campos são sincronizados — alterar um atualiza o outro.</p>
+    <div class="row"><label style="width:200px">Valor mínimo saque (R$)</label><input id="cfg-min" type="number" step="0.01"/></div>
+    <div class="row">
+      <label style="width:200px">Valores fixos de saque</label>
+      <input id="cfg-wopts" type="text" placeholder="ex: 5, 10, 20, 50"/>
+    </div>
+    <p style="color:var(--muted);font-size:12px;margin:-6px 0 8px 212px">Separe por vírgula. Adicione ou remova quantos quiser.</p>
+    <div class="row"><label style="width:200px">Limite diário saque (R$)</label><input id="cfg-daily" type="number" step="0.01"/></div>
+
+    <!-- ===== Janela de saque (sexta-feira) ===== -->
+    <h3 style="margin-top:18px">💸 Janela de Saque (sexta-feira)</h3>
+    <p style="color:var(--muted);font-size:13px">
+      No modo <b>Automático</b>, o saque abre <b>toda sexta-feira às 00:00</b>
+      (horário de Brasília) e fecha no <b>sábado às 00:00</b> (24h liberado).
+      No modo <b>Manual</b>, você controla com o botão "Aberto agora".
+    </p>
+    <div class="row">
+      <label style="width:200px">Modo</label>
+      <select id="cfg-ww-mode">
+        <option value="auto">Automático (toda sexta-feira)</option>
+        <option value="manual">Manual (eu controlo)</option>
+      </select>
+    </div>
+    <div class="row">
+      <label style="width:200px">Aberto agora? (manual)</label>
+      <label style="display:flex;align-items:center;gap:8px">
+        <input id="cfg-ww-open" type="checkbox"/>
+        <span id="cfg-ww-openLbl" style="color:var(--muted);font-size:13px">Use somente quando o modo for "Manual".</span>
+      </label>
+    </div>
+    <div class="row">
+      <label style="width:200px">Estado atual</label>
+      <div id="cfg-ww-status" style="font-size:13px;color:var(--muted)">—</div>
+    </div>
+    <button class="act ok save-btn" id="cfg-ww-save">Salvar janela de saque</button>
+
+    <h3 style="margin-top:18px">🎁 Bônus e promoções</h3>
+    <div class="row"><label style="width:200px">Bônus diário (pontos)</label><input id="cfg-bonus" type="number"/></div>
+    <div class="row"><label style="width:200px">Cooldown jogos (seg)</label><input id="cfg-cool" type="number"/></div>
+    <div class="row"><label style="width:200px">Promoção ativa</label><input id="cfg-promo" type="text" placeholder="ex: 2x pontos hoje"/></div>
+    <div class="row"><label style="width:200px">Link do Telegram</label><input id="cfg-telegram" type="url" placeholder="https://t.me/seugrupo (ou t.me/seugrupo, @seugrupo)"/></div>
+    <button class="act ok save-btn" id="cfg-save">Salvar config</button>
+  </section>
+
+  <!-- ==================== MULTIPLAYER (PvP) ==================== -->
+  <section id="sec-multiplayer" class="section">
+    <h2 style="color:#22d3ee">⚔️ Multiplayer (PvP)</h2>
+    <p style="color:var(--muted);font-size:13px">Configurações do modo Multiplayer online. Valores de aposta exibidos no menu PvP. Mínimo R$ 0,20.</p>
+    <div class="row"><label style="width:200px">Valores de aposta (R$)</label><input id="cfg-mp-bets" type="text" placeholder="ex: 0.20, 0.50, 1, 2, 5"/></div>
+    <button class="act ok save-btn" id="cfg-mp-save">Salvar multiplayer</button>
+  </section>
+
+  <!-- ==================== PRÊMIOS DOS JOGOS ==================== -->
+  <section id="sec-prizes" class="section">
+    <h2 style="color:#fbbf24">🎮 Prêmios dos jogos <span style="color:var(--muted);font-weight:400;font-size:12px">(numeração #N abaixo de cada nome)</span></h2>
+    <p style="color:var(--muted);font-size:13px">Cada jogo tem um <b>#número</b> fixo (offline e online). Use o número para identificar nos logs/extrato. <b>Fixo</b> = só o campo "fixo R$". <b>Aleatório</b> = só min e max.</p>
+    <div class="row"><label style="width:200px">Modo global de prêmios</label>
+      <select id="cfg-prizemode"><option value="random">Aleatório (min..max)</option><option value="fixed">Fixo (valor "fixed")</option></select>
+    </div>
+    <h4 style="margin:14px 0 4px">🎲 Jogos OFFLINE (mini-games)</h4>
+    <div id="cfg-games-editor-offline" style="display:grid;gap:6px"></div>
+    <h4 style="margin:14px 0 4px">⚔️ Jogos ONLINE (PvP)</h4>
+    <div id="cfg-games-editor-online" style="display:grid;gap:6px"></div>
+    <!-- Compat: admin.js antigo escrevia em #cfg-games-editor -->
+    <div id="cfg-games-editor" style="display:none"></div>
+    <button class="act ok save-btn" id="cfg-games-save" style="margin-top:10px">Salvar prêmios</button>
+  </section>
+
+  <!-- ==================== ROLETA PREMIADA ==================== -->
+  <section id="sec-roulette" class="section">
+    <h2 style="color:#fbbf24">🎡 Roleta Premiada</h2>
+    <p style="color:var(--muted);font-size:13px">Edite as fatias (casas) da roleta. <b>Peso</b> = chance relativa (peso maior = sai mais). <b>Pontos</b> = quantos pontos a fatia paga (0 = "Tente novamente"). <b>Descrição</b> = nota interna pra você lembrar o que é a fatia.</p>
+
+    <div id="cfg-rl-preview-wrap" style="display:flex;flex-direction:column;align-items:center;gap:8px;margin:10px 0 14px">
+      <svg id="cfg-rl-preview" viewBox="0 0 220 220" style="width:240px;height:240px;max-width:100%;filter:drop-shadow(0 6px 18px rgba(0,0,0,.35))"></svg>
+      <p style="color:var(--muted);font-size:12px;margin:0">Pré-visualização (atualiza ao editar)</p>
+    </div>
+
+    <div class="row" style="gap:14px;flex-wrap:wrap">
+      <label style="width:200px">Anúncio a cada N giros</label>
+      <input id="cfg-rl-every" type="number" min="1" step="1" style="width:90px" value="3"/>
+      <label style="display:flex;align-items:center;gap:6px"><input id="cfg-rl-adafter" type="checkbox" checked/> mostrar anúncio</label>
+    </div>
+    <div id="cfg-rl-slices" style="display:grid;gap:6px;margin-top:8px"></div>
+    <div class="row" style="margin-top:8px;gap:8px">
+      <button class="act" id="cfg-rl-add" type="button">+ Adicionar fatia</button>
+      <button class="act ok save-btn" id="cfg-rl-save" type="button">Salvar roleta</button>
+    </div>
+  </section>
+
+  <section id="sec-notify" class="section">
+    <h3>Enviar notificação</h3>
+    <div class="row"><select id="n-target"><option value="all">Todos</option><option value="uid">UID específico</option></select><input id="n-uid" placeholder="UID (se aplicável)"/></div>
+    <div class="row"><input id="n-title" placeholder="Título" style="flex:1"/></div>
+    <div class="row"><textarea id="n-msg" placeholder="Mensagem" style="flex:1;min-height:80px"></textarea></div>
+    <button class="act ok" id="n-send" title="Envia a notificação para todos os usuários ou para o UID informado (push FCM + bell)">Enviar</button>
+    <button class="act" id="n-send-self" title="Envia uma notificação de teste só para o admin logado (útil pra testar push)">🧪 Testar (para mim)</button>
+    <h3 style="margin-top:24px">Últimas enviadas</h3>
+    <div class="table-wrap"><table id="n-table"><thead><tr><th>Data</th><th>Para</th><th>Título</th></tr></thead><tbody></tbody></table></div>
+  </section>
+
+  <section id="sec-admins" class="section">
+    <h3>Administradores</h3>
+    <p style="color:var(--muted);font-size:13px">
+      Como definir um admin (manualmente):<br>
+      1. No <b>Firebase Console</b> → Authentication, copie o UID do usuário.<br>
+      2. Use o <b>Cloud Shell</b> ou <b>Cloud Functions</b> para rodar:<br>
+      <pre>admin.auth().setCustomUserClaims(uid, { admin: true })</pre>
+      3. O usuário precisa fazer logout/login para o token atualizar.<br>
+      (O cliente não pode alterar claims — requer Admin SDK no backend.)
+    </p>
+    <h3>Lista de admins atuais</h3>
+    <div class="table-wrap"><table id="a-table"><thead><tr><th>Email</th><th>UID</th><th>Adicionado</th></tr></thead><tbody></tbody></table></div>
+    <div class="row" style="margin-top:12px">
+      <input id="a-uid" placeholder="UID do novo admin (registro local)"/>
+      <input id="a-email" placeholder="Email"/>
+      <button class="act" id="a-add">Registrar admin (visual)</button>
+    </div>
+    <p style="color:var(--muted);font-size:12px">Isso só cria um registro em <code>admins/{uid}</code> para a sua referência. A claim real precisa ser setada via Admin SDK.</p>
+  </section>
+
+  <section id="sec-backup" class="section">
+    <h3>Backup / Exportação</h3>
+    <p style="color:var(--muted)">Escolha uma coleção. Você pode <b>visualizar</b> em tabela na tela ou <b>baixar</b> como JSON.</p>
+    <div class="row" style="flex-wrap:wrap;gap:8px">
+      <select id="b-col">
+        <option>users</option><option>withdraw_requests</option><option>history</option>
+        <option>support_requests</option><option>fraud_logs</option><option>activity_logs</option>
+        <option>devices</option><option>referrals</option><option>notifications</option>
+      </select>
+      <button class="act ok" id="b-view">👁 Visualizar dados</button>
+      <button class="act" id="b-go">⬇ Baixar JSON</button>
+    </div>
+    <div id="b-viewer" style="margin-top:14px"></div>
+    <h3 style="margin-top:18px">Relatório financeiro</h3>
+    <div id="b-report"></div>
+  </section>
+
+
+  <section id="sec-ads" class="section">
+    <h3>📣 Anúncios (v51)</h3>
+    <p style="color:var(--muted);font-size:13px;margin:6px 0 14px;line-height:1.55">
+      Sistema de anúncios com <b>3 provedores</b>, <b>modo de teste</b> e <b>painel F12</b> de debug.
+      Tudo configurado neste navegador (localStorage).
+    </p>
+
+    <!-- =================== TOGGLES PRINCIPAIS =================== -->
+    <div class="card" style="padding:14px;margin-bottom:14px">
+      <h4 style="margin:0 0 10px;color:#fbbf24">🔧 Controles globais</h4>
+      <label style="display:flex;align-items:center;gap:10px;margin:8px 0">
+        <input type="checkbox" id="rs-ads-test-mode">
+        <strong style="color:#fff">🧪 Modo de TESTE</strong>
+        <span style="color:#94a3b8;font-size:12px">— anúncios sempre completam (sem rede). Banner mostra placeholder verde.</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;margin:8px 0">
+        <input type="checkbox" id="rs-debug-f12">
+        <strong style="color:#fff">🛠 Mostrar botão F12 (debug)</strong>
+        <span style="color:#94a3b8;font-size:12px">— exibe um botão flutuante "⚙ F12" em todas as páginas do site. Atalho: Ctrl+F12.</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;margin:8px 0">
+        <span style="color:#fff">🎯 Pontos por anúncio:</span>
+        <input type="number" id="rs-ads-reward-points" min="0" style="width:90px" />
+      </label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+        <button class="act ok" id="rs-ads-save-toggles">💾 Salvar controles</button>
+        <button class="act" id="rs-ads-test-now" style="background:#2563eb;color:#fff">▶ Disparar anúncio agora</button>
+      </div>
+    </div>
+
+    <!-- =================== PROVEDORES =================== -->
+    <div class="card" style="padding:14px">
+      <h4 style="margin:0 0 10px;color:#fbbf24">🧩 Provedores (até 3)</h4>
+      <p style="color:#94a3b8;font-size:12px;margin:0 0 10px">
+        O sistema tenta o provedor de prioridade <b>1</b> primeiro; se falhar (timeout, adblock), passa ao 2, depois ao 3.
+        Cole a URL do <code>invoke.js</code>/script do provedor. O <b>Container ID</b> é exigido por alguns provedores (ex.: Adsterra).
+      </p>
+      <div id="rs-ads-providers-editor" style="display:grid;gap:10px"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+        <button class="act ok" id="rs-ads-providers-save">💾 Salvar provedores</button>
+        <button class="act" id="rs-ads-providers-reset" style="background:#374151;color:#fff">↺ Restaurar padrões</button>
+      </div>
+    </div>
+  </section>
+  <script>
+  (function(){
+    function $(id){ return document.getElementById(id); }
+    function load(){
+      var test = localStorage.getItem("rs_ads_test_mode") === "1";
+      var f12  = localStorage.getItem("rs_debug_f12_enabled") === "1";
+      var pts  = Number(localStorage.getItem("rs_ads_reward_points") || 10);
+      $("rs-ads-test-mode").checked = test;
+      $("rs-debug-f12").checked = f12;
+      $("rs-ads-reward-points").value = pts;
+      drawProviders();
+    }
+    function drawProviders(){
+      var list = (window.RS_AD && window.RS_AD.providers && window.RS_AD.providers()) || [];
+      while (list.length < 3) list.push({ id:"p"+(list.length+1), name:"Provedor "+(list.length+1), enabled:false, priority:list.length+1, type:"invoke", src:"", containerId:"" });
+      var ed = $("rs-ads-providers-editor");
+      ed.innerHTML = list.map(function(p,i){
+        return '<div style="border:1px solid #1f2937;border-radius:8px;padding:10px;background:#0b1220">'+
+          '<label style="display:flex;align-items:center;gap:8px;margin-bottom:6px;color:#fff"><input type="checkbox" data-i="'+i+'" data-k="enabled" '+(p.enabled?"checked":"")+'><b>'+(p.name||("Provedor "+(i+1)))+'</b></label>'+
+          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">'+
+            '<div><div style="font-size:11px;color:#94a3b8">Nome</div><input data-i="'+i+'" data-k="name" value="'+(p.name||"").replace(/"/g,"&quot;")+'" style="width:100%"></div>'+
+            '<div><div style="font-size:11px;color:#94a3b8">Prioridade</div><input type="number" data-i="'+i+'" data-k="priority" value="'+(p.priority||(i+1))+'" style="width:100%"></div>'+
+          '</div>'+
+          '<div style="font-size:11px;color:#94a3b8;margin-top:6px">URL do script (src)</div>'+
+          '<input data-i="'+i+'" data-k="src" value="'+(p.src||"").replace(/"/g,"&quot;")+'" placeholder="https://..." style="width:100%">'+
+          '<div style="font-size:11px;color:#94a3b8;margin-top:6px">Container ID (opcional)</div>'+
+          '<input data-i="'+i+'" data-k="containerId" value="'+(p.containerId||"").replace(/"/g,"&quot;")+'" placeholder="container-..." style="width:100%">'+
+        '</div>';
+      }).join("");
+    }
+    function readProviders(){
+      var cur = (window.RS_AD && window.RS_AD.providers()) || [];
+      while (cur.length < 3) cur.push({ id:"p"+(cur.length+1), enabled:false, priority:cur.length+1, type:"invoke" });
+      document.querySelectorAll("#rs-ads-providers-editor input").forEach(function(inp){
+        var i = +inp.getAttribute("data-i"); var k = inp.getAttribute("data-k");
+        if (!cur[i]) return;
+        if (inp.type === "checkbox") cur[i][k] = inp.checked;
+        else if (inp.type === "number") cur[i][k] = Number(inp.value)||1;
+        else cur[i][k] = inp.value;
+      });
+      return cur;
+    }
+    document.addEventListener("DOMContentLoaded", function(){
+      // espera ads.js inicializar
+      setTimeout(load, 100);
+      $("rs-ads-save-toggles").onclick = function(){
+        localStorage.setItem("rs_ads_test_mode", $("rs-ads-test-mode").checked ? "1" : "0");
+        localStorage.setItem("rs_debug_f12_enabled", $("rs-debug-f12").checked ? "1" : "0");
+        localStorage.setItem("rs_ads_reward_points", String(Number($("rs-ads-reward-points").value)||0));
+        alert("✅ Controles salvos! As mudanças valem na próxima visita / recarga das páginas.");
+      };
+      $("rs-ads-test-now").onclick = function(){
+        try { window.showAd().then(function(){ alert("Anúncio concluído ✅ (crédito normal aconteceria aqui)"); }).catch(function(e){ alert("Falhou: "+(e&&e.message||e)); }); }
+        catch(e){ alert("Erro: "+e.message); }
+      };
+      $("rs-ads-providers-save").onclick = function(){
+        var arr = readProviders();
+        window.RS_AD && window.RS_AD.saveProviders(arr);
+        alert("✅ Provedores salvos!");
+        drawProviders();
+      };
+      $("rs-ads-providers-reset").onclick = function(){
+        if (!confirm("Restaurar provedores padrão?")) return;
+        try { localStorage.removeItem("rs_ads_providers_v51"); } catch(_){}
+        drawProviders();
+      };
+    });
+  })();
+  </script>
+
+
+  <!-- ==================== MANUTENÇÃO ==================== -->
+  <section id="sec-maint" class="section">
+    <h2 style="color:#fbbf24">🛠️ Manutenção do Sistema</h2>
+    <p style="color:#94a3b8;margin:6px 0 14px">Quando ativado, todos os usuários veem a tela: <i>"Sistema em manutenção, tente novamente mais tarde."</i></p>
+    <div class="card" style="padding:14px">
+      <label style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <input type="checkbox" id="m-enabled" />
+        <strong style="color:#fff">Ativar modo manutenção</strong>
+      </label>
+      <label style="display:block;margin-bottom:6px;color:#cbd5e1">Mensagem exibida aos usuários</label>
+      <textarea id="m-message" rows="3" style="width:100%;background:#0f1c2f;color:#fff;border:1px solid #1e293b;border-radius:8px;padding:10px"
+        placeholder="Sistema em manutenção, tente novamente mais tarde.">Sistema em manutenção, tente novamente mais tarde.</textarea>
+      <button class="act ok save-btn" id="m-save" style="margin-top:12px">Salvar configuração</button>
+    </div>
+  </section>
+
+
+  <!-- ==================== AVISO NA ENTRADA ==================== -->
+  <section id="sec-notice" class="section">
+    <h2 style="color:#22d3ee">📢 Aviso na entrada do site</h2>
+    <p style="color:#94a3b8;margin:6px 0 14px">Quando ativado, todos os usuários veem uma janela ao entrar no site com a mensagem que você escrever aqui. Cada vez que você salva, o aviso reaparece (mesmo que já tenha sido visto).</p>
+    <div class="card" style="padding:14px">
+      <label style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <input type="checkbox" id="sn-enabled" />
+        <strong style="color:#fff">Ativar aviso para todos os usuários</strong>
+      </label>
+      <label style="display:block;margin-bottom:6px;color:#cbd5e1">Mensagem exibida</label>
+      <textarea id="sn-message" rows="5" style="width:100%;background:#0f1c2f;color:#fff;border:1px solid #1e293b;border-radius:8px;padding:10px"
+        placeholder="Ex.: Olá! Estamos com promoção essa semana, jogue para ganhar mais!"></textarea>
+      <button class="act ok save-btn" id="sn-save" style="margin-top:12px">Salvar aviso</button>
+    </div>
+  </section>
+
+  <!-- ==================== CACHE BUST ==================== -->
+  <section id="sec-cache" class="section">
+    <h2 style="color:#22d3ee">🧹 Forçar limpeza de cache</h2>
+    <p style="color:#94a3b8;margin:6px 0 14px">
+      Quando ativo, ao tocar em <b>"Forçar atualização agora"</b>, todos os usuários terão o cache
+      do navegador limpo automaticamente e o app será recarregado na versão mais nova.
+      Útil quando você sobe uma versão nova e quer garantir que ninguém fique numa versão antiga.
+    </p>
+    <div class="card" style="padding:14px">
+      <label style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <input type="checkbox" id="cb-enabled" />
+        <strong style="color:#fff">Ativar atualização forçada para todos os usuários</strong>
+      </label>
+      <p style="color:#cbd5e1;font-size:13px;margin:0 0 10px">
+        Versão atual de cache: <b id="cb-current">—</b>
+      </p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="act ok save-btn" id="cb-save">Salvar configuração</button>
+        <button class="act" id="cb-bump" style="background:#ef4444;color:#fff">🔄 Forçar atualização agora</button>
+      </div>
+      <p style="color:#94a3b8;font-size:12px;margin-top:10px">
+        O botão vermelho aumenta a versão e dispara a limpeza imediata em todos os dispositivos conectados.
+      </p>
+    </div>
+  </section>
+
+  <!-- ==================== RANKING ==================== -->
+  <section id="sec-ranking" class="section">
+    <h2 style="color:#fbbf24">🏆 Ranking — Temporada</h2>
+    <p style="color:#94a3b8;margin:6px 0 14px">Gerencia a temporada mensal do ranking. Você pode <b>resetar a temporada atual</b> (apaga todas as pontuações do mês corrente) ou <b>resetar um mês específico</b>. Os usuários começam do zero a partir do próximo update.</p>
+    <div class="card" style="padding:14px;max-width:560px">
+      <label style="display:block;margin-bottom:6px;color:#cbd5e1">Mês (formato AAAA-MM)</label>
+      <input id="rk-month" type="text" placeholder="ex.: 2026-06" style="width:100%;max-width:200px"/>
+      <p style="color:#94a3b8;font-size:12px;margin:6px 0 14px">Deixe em branco para resetar o mês atual.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="act err" id="rk-reset">🧨 Resetar temporada</button>
+        <button class="act" id="rk-count">📊 Ver quantos jogadores</button>
+      </div>
+      <p id="rk-info" style="color:#22d3ee;font-size:13px;margin-top:10px;min-height:18px"></p>
+    </div>
+  </section>
+
+</main>
+
+<!-- ==================== HELP / TOOLTIPS POR SEÇÃO (v37.10) ==================== -->
+<style>
+  /* Ícone de ajuda "ⓘ" ao lado dos títulos das seções */
+  .sec-help-btn{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:24px;height:24px;border-radius:50%;border:0;
+    background:#22d3ee;color:#06121c;font-weight:900;font-size:14px;
+    cursor:pointer;margin-left:8px;vertical-align:middle;
+    box-shadow:0 2px 6px rgba(34,211,238,.35);transition:transform .15s,filter .15s;
+    line-height:1;font-family:system-ui,sans-serif;
+  }
+  .sec-help-btn:hover{ transform:scale(1.1); filter:brightness(1.15); }
+  /* Espaçamento e organização das seções */
+  main .section h2:first-child, main .section h3:first-child{
+    display:flex;align-items:center;flex-wrap:wrap;gap:4px;
+    padding-bottom:10px;margin-bottom:14px;
+    border-bottom:1px solid var(--border);
+  }
+  .help-modal-back{position:fixed;inset:0;background:#000c;z-index:9999;display:flex;align-items:center;justify-content:center;padding:14px}
+  .help-modal-box{background:var(--panel);border:2px solid #22d3ee;border-radius:14px;max-width:520px;width:100%;color:var(--text);padding:22px;box-shadow:0 16px 60px rgba(0,0,0,.6)}
+  .help-modal-box h3{margin:0 0 12px;color:#22d3ee;font-size:18px;display:flex;align-items:center;gap:8px}
+  .help-modal-box .help-body{color:#cbd5e1;line-height:1.55;font-size:14px;white-space:pre-wrap}
+  .help-modal-box .help-close{margin-top:16px;background:#22d3ee;color:#06121c;border:0;border-radius:10px;padding:10px 22px;font-weight:800;cursor:pointer;width:100%}
+</style>
+<script>
+(function(){
+  // Dicionário de ajuda por id da seção (sem prefixo "sec-")
+  const HELP = {
+    dash:      { t:"Dashboard",       b:"Resumo geral do app: total de usuários, saldo acumulado, saques pendentes e atividade recente. Use como visão rápida do dia." },
+    users:     { t:"Usuários",        b:"Lista todos os usuários cadastrados. Você pode buscar por email/nome/UID, filtrar (banidos, online, novos hoje) e fazer ações como banir, desbanir, somar pontos, etc." },
+    withdraws: { t:"Saques",          b:"Gerencia pedidos de saque via Pix. Filtre por status (pendente, pago, rejeitado) e use os botões para aprovar ou recusar cada pedido." },
+    suspects:  { t:"Suspeitos",       b:"Mostra usuários com sinais de fraude: multi-conta no mesmo aparelho, IPs compartilhados, comportamento estranho. Bom para investigar antes de banir." },
+    logs:      { t:"Logs",            b:"Histórico de atividades e tentativas de fraude. Você pode filtrar por UID e tipo (atividade ou fraude). Útil pra auditoria." },
+    support:   { t:"Suporte",         b:"Mensagens que os usuários enviaram pelo formulário de contato/suporte do app. Responda e marque como resolvido." },
+    referrals: { t:"Referrals",       b:"Lista de quem indicou quem. Mostra o bônus aplicado em cada indicação." },
+    config:    { t:"Config/Bônus",    b:"Configurações globais do app: taxa de conversão pontos→R$, valor mínimo de saque, janela de saque (sexta-feira), bônus diário, cooldown dos jogos, valores de aposta do PvP, prêmios por jogo e configuração da Roleta Premiada. Lembre de salvar cada bloco." },
+    notify:    { t:"Notificações",    b:"Envia uma notificação push para TODOS os usuários ou para um UID específico. Aparece no sino do app e dispara push FCM para quem estiver offline." },
+    ads:       { t:"Anúncios",        b:"Gerenciador de anúncios. Cole o código (URL, <script>, <iframe> ou HTML) em cada slot: topo, rodapé, recompensa, popup, vitória, derrota, etc. Vários anúncios por slot são suportados — o sistema sorteia." },
+    admins:    { t:"Admins",          b:"Lista dos admins registrados. Para tornar alguém admin de verdade é preciso setar a claim `admin: true` no Firebase (Admin SDK) — este painel só guarda um registro visual." },
+    backup:    { t:"Backup",          b:"Exporta coleções inteiras do banco (usuários, saques, logs, etc.) como JSON, ou visualiza em tabela direto na tela. Também mostra um relatório financeiro." },
+    notice:    { t:"Aviso na entrada", b:"Aviso que aparece para TODOS os usuários assim que abrem o app. Útil para comunicar promoções, manutenções programadas ou avisos importantes. Cada vez que você salva, todos veem o aviso de novo (mesmo se já tinham visto o anterior)." },
+    maint:     { t:"Manutenção",      b:"Quando ativado, todos os usuários veem uma tela bloqueando o acesso ao app com a mensagem que você definir. Use para atualizações grandes ou problemas críticos." },
+    cache:     { t:"Cache",           b:"Força todos os dispositivos conectados a limparem o cache do navegador e recarregarem o app na versão mais nova. Use depois de subir uma versão nova." },
+    ranking:   { t:"Ranking",         b:"Gerencia a temporada mensal do ranking. Você pode resetar todas as pontuações do mês atual (ou de outro mês) — útil pra começar uma nova temporada do zero." }
+  };
+
+  function openHelp(id){
+    const h = HELP[id]; if (!h) return;
+    const back = document.createElement("div");
+    back.className = "help-modal-back";
+    back.innerHTML = '<div class="help-modal-box" onclick="event.stopPropagation()"><h3>ⓘ '+h.t+'</h3><div class="help-body"></div><button class="help-close">Entendi</button></div>';
+    back.querySelector(".help-body").textContent = h.b;
+    back.onclick = ()=> back.remove();
+    back.querySelector(".help-close").onclick = ()=> back.remove();
+    document.body.appendChild(back);
+  }
+
+  function injectHelpButtons(){
+    document.querySelectorAll("main > section.section").forEach(sec=>{
+      const id = (sec.id||"").replace(/^sec-/, "");
+      if (!HELP[id]) return;
+      const h = sec.querySelector("h2, h3");
+      if (!h || h.dataset.helpInjected === "1") return;
+      h.dataset.helpInjected = "1";
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "sec-help-btn";
+      btn.title = "O que é esta seção?";
+      btn.setAttribute("aria-label","Ajuda da seção "+HELP[id].t);
+      btn.textContent = "ⓘ";
+      btn.onclick = (e)=>{ e.preventDefault(); e.stopPropagation(); openHelp(id); };
+      h.appendChild(btn);
+    });
+  }
+
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", injectHelpButtons);
+  else injectHelpButtons();
+  // Re-aplica caso seções sejam re-renderizadas
+  setInterval(injectHelpButtons, 2500);
+})();
+</script>
+
+
+<!-- Descrição/rodapé fixo da página atual -->
+<div id="pageFooter" class="page-footer">
+  <div class="pf-desc" id="pfDesc">Bem-vindo ao painel</div>
+  <div class="pf-status" id="pfStatus" title="Status da conexão">● online</div>
+</div>
+</div>
+
+<div id="toast" class="toast" style="display:none"></div>
+<div id="modal" class="modal"><div class="box" id="modal-box"></div></div>
+
+<script type="module" src="coracao/admin.js"></script>
+<script src="coracao/ads.js"></script>
+<script src="coracao/ads-admin-local.js"></script>
+<script src="coracao/admin-swipe.js"></script>
+<script src="coracao/admin-status.js"></script>
+<script src="coracao/admin-organize.js"></script>
+<script src="coracao/admin-fix-v37-16.js"></script>
+<script src="coracao/admin-fix-v37-17.js"></script>
+
+<!-- Bloco legado "Locais de anúncios V34" removido — aparecia em todas as telas. -->
+
+
+<script>
+  // Tema claro/escuro do painel ADM — persiste em localStorage
+  (function(){
+    const KEY = "rs_admin_theme";
+    const btn = document.getElementById("themeToggle");
+    function apply(theme){
+      document.body.classList.toggle("light", theme === "light");
+      if (btn) btn.textContent = theme === "light" ? "☀️" : "🌙";
+    }
+    apply(localStorage.getItem(KEY) || "dark");
+    btn && btn.addEventListener("click", () => {
+      const next = document.body.classList.contains("light") ? "dark" : "light";
+      localStorage.setItem(KEY, next);
+      apply(next);
+    });
+  })();
+</script>
+<script src="./coracao/debug-f12.js"></script>
+<script src="./coracao/ads-flow-v53.js"></script>
+<script src="./coracao/ads-banner-top-v53.js"></script>
+</body>
+</html>

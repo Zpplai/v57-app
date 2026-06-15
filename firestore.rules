@@ -1,0 +1,272 @@
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuth() &&
+        request.auth.token.admin == true;
+    }
+
+    match /users/{userId} {
+      // v39: leitura por qualquer usuário autenticado (necessário para
+      // exibir nome/avatar em seguidores/seguindo). Continua sem ler
+      // dados sensíveis como Pix porque o front só pega name/avatar.
+      allow read: if isAuth();
+      allow create: if isAuth() && request.auth.uid == userId;
+
+      allow update: if isAdmin()
+        || (isAuth()
+          && request.auth.uid == userId
+          && !("admin" in request.resource.data.diff(resource.data).affectedKeys())
+          && (!("balance" in request.resource.data.diff(resource.data).affectedKeys())
+              || (request.resource.data.balance is number && request.resource.data.balance >= 0)));
+
+      allow delete: if false;
+    }
+
+    match /withdrawals/{withdrawId} {
+      allow create: if isAuth();
+      allow read: if isAuth();
+      allow update, delete: if isAdmin();
+    }
+
+    match /adminLogs/{logId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /tasks/{taskId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /rewards/{rewardId} {
+      allow read: if isAuth();
+      allow write: if false;
+    }
+
+    // === Multiplayer (Jogo da Velha PvP) ===
+    match /mp_queue/{id} {
+      allow read, create, delete: if isAuth();
+      allow update: if isAuth();
+    }
+    match /mp_matches/{id} {
+      allow read: if isAuth();
+      allow create: if isAuth();
+      allow update: if isAuth()
+        && (request.auth.uid == resource.data.playerX
+            || request.auth.uid == resource.data.playerO
+            || ('playerA' in resource.data && request.auth.uid == resource.data.playerA)
+            || ('playerB' in resource.data && request.auth.uid == resource.data.playerB));
+      allow delete: if isAdmin();
+
+      // Mini-chat ao vivo entre os 2 jogadores da partida
+      match /chat/{msgId} {
+        allow read: if isAuth();
+        allow create: if isAuth() && request.resource.data.uid == request.auth.uid
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 120;
+        allow update, delete: if isAdmin();
+      }
+    }
+
+    // === Presença online no multiplayer ===
+    match /mp_presence/{uid} {
+      allow read: if isAuth();
+      allow create, update: if isAuth() && request.auth.uid == uid;
+      allow delete: if isAuth() && request.auth.uid == uid;
+    }
+
+    // === Chat global entre usuários ===
+    match /chat_global/{id} {
+      allow read: if isAuth();
+      allow create: if isAuth()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0
+        && request.resource.data.text.size() <= 200;
+      // Permitir marcar convite como aceito (apenas campos acceptedBy/acceptedAt)
+      allow update: if isAuth()
+        && resource.data.type == "invite"
+        && !("acceptedBy" in resource.data)
+        && resource.data.uid != request.auth.uid
+        && request.resource.data.acceptedBy == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(["acceptedBy","acceptedAt"]);
+      allow update, delete: if isAdmin();
+    }
+
+    // === Chat privado (DM) — convId = uids ordenados join("_") ===
+    match /dm/{convId}/messages/{msgId} {
+      allow read: if isAuth()
+        && (request.auth.uid in convId.split("_"));
+      allow create: if isAuth()
+        && request.resource.data.uid == request.auth.uid
+        && request.auth.uid in convId.split("_")
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0
+        && request.resource.data.text.size() <= 200;
+      allow update, delete: if isAdmin();
+    }
+
+    // Permite collectionGroup("messages") para listar as DMs do usuário
+    match /{path=**}/messages/{msgId} {
+      allow read: if isAuth()
+        && resource.data.participants is list
+        && request.auth.uid in resource.data.participants;
+    }
+
+    // === Config global (ADM define mínimos, taxas, etc.) ===
+    match /config/{id} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+
+    // === Manutenção do sistema (compatibilidade com versões antigas) ===
+    match /app_config/{id} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+
+    // === Tickets do mascote / suporte ===
+    match /support_requests/{id} {
+      allow create: if isAuth();
+      allow read, update, delete: if isAdmin();
+    }
+
+    // === Notificações ===
+    // O app lê broadcasts ('all') e notificações dirigidas ao próprio uid.
+    match /notifications/{id} {
+      allow read: if isAuth();
+      // v37.9.18 — usuário pode criar notificação própria (saque) OU DM para outro usuário.
+      // Isso permite o gatilho sendPushOnNotification disparar push offline quando uma DM chega.
+      allow create: if isAdmin() || (
+        isAuth()
+        && request.resource.data.title is string
+        && request.resource.data.message is string
+        && request.resource.data.title.size() <= 120
+        && request.resource.data.message.size() <= 500
+        && (
+          request.resource.data.target == request.auth.uid
+          || (
+            request.resource.data.type == "dm"
+            && request.resource.data.createdBy == request.auth.uid
+            && request.resource.data.target is string
+            && request.resource.data.target != request.auth.uid
+          )
+        )
+      );
+      allow update, delete: if isAdmin();
+    }
+    // Tokens FCM do usuário — necessários para push em background/offline.
+    match /fcm_tokens/{token} {
+      allow create, update: if isAuth()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.token == token;
+      allow read, delete: if isAdmin() || (isAuth() && resource.data.userId == request.auth.uid);
+    }
+    // Estado lido/não lido por usuário
+    match /notif_reads/{id} {
+      allow read: if isAuth() && resource.data.userId == request.auth.uid;
+      allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAuth() && resource.data.userId == request.auth.uid;
+    }
+    // === Histórico do usuário (leitura própria) ===
+    // === Follows (v39) — sistema simples de seguir usuários ===
+    // ID determinístico = "{follower}_{target}" → garante dedup natural.
+    match /follows/{id} {
+      allow read: if isAuth();
+      allow create: if isAuth()
+        && request.resource.data.follower == request.auth.uid
+        && request.resource.data.target is string
+        && request.resource.data.target != request.auth.uid
+        && id == request.resource.data.follower + "_" + request.resource.data.target;
+      allow delete: if isAuth() && resource.data.follower == request.auth.uid;
+      allow update: if false;
+    }
+
+    // === Denúncias de usuários (botão Denunciar do perfil) ===
+    match /reports/{id} {
+      allow create: if isAuth()
+        && request.resource.data.by == request.auth.uid
+        && request.resource.data.target is string;
+      allow read, update, delete: if isAdmin();
+    }
+
+    match /history/{id} {
+      allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
+      allow read: if isAuth() && resource.data.userId == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    // === Ranking público mensal (read auth, write próprio) ===
+    match /ranking/{month}/entries/{uid} {
+      allow read: if isAuth();
+      allow create, update: if isAuth()
+        && request.auth.uid == uid
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.score is number;
+      allow delete: if isAdmin();
+    }
+
+    // === Resgate do prêmio do ranking (1 por mês por usuário) ===
+    match /users/{userId}/rankingClaims/{month} {
+      allow read:   if isAuth() && request.auth.uid == userId;
+      allow create: if isAuth() && request.auth.uid == userId;
+      allow update, delete: if isAdmin();
+    }
+
+    // === V38: Social — seguir / amizades / convites de partida ===
+    match /follows/{id} {
+      // id pattern: "{follower}_{target}"
+      allow read: if isAuth();
+      allow create: if isAuth()
+        && request.resource.data.follower == request.auth.uid
+        && request.resource.data.target is string
+        && request.resource.data.target != request.auth.uid;
+      allow delete: if isAuth() && resource.data.follower == request.auth.uid;
+      allow update: if false;
+    }
+
+    match /friendships/{id} {
+      // id pattern: pair sorted "{uidA}_{uidB}"
+      allow read: if isAuth()
+        && (request.auth.uid == resource.data.a || request.auth.uid == resource.data.b);
+      allow create: if isAuth()
+        && request.resource.data.requestedBy == request.auth.uid
+        && request.resource.data.status == "pending"
+        && (request.auth.uid == request.resource.data.a
+            || request.auth.uid == request.resource.data.b);
+      allow update: if isAuth()
+        && (request.auth.uid == resource.data.a || request.auth.uid == resource.data.b)
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(["status","acceptedAt"]);
+      allow delete: if isAuth()
+        && (request.auth.uid == resource.data.a || request.auth.uid == resource.data.b);
+    }
+
+    match /game_invites/{id} {
+      allow read: if isAuth()
+        && (request.auth.uid == resource.data.from || request.auth.uid == resource.data.to);
+      allow create: if isAuth()
+        && request.resource.data.from == request.auth.uid
+        && request.resource.data.to is string
+        && request.resource.data.to != request.auth.uid
+        && request.resource.data.status == "pending";
+      allow update: if isAuth()
+        && (request.auth.uid == resource.data.from || request.auth.uid == resource.data.to)
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(["status","matchId","acceptedAt","declinedAt"]);
+      allow delete: if isAuth() && resource.data.from == request.auth.uid;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

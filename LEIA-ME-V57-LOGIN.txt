@@ -1,0 +1,51 @@
+========================================================
+RETRO STATION v57 — Correcao do Login Google + Loader
+========================================================
+
+PROBLEMA REPORTADO
+------------------
+1. No celular aparecia "Pop-up bloqueado. Permita pop-ups
+   e tente de novo." e ficava preso.
+2. Login por e-mail+senha ficava "Carregando..." infinito.
+
+CAUSA
+-----
+- signInWithPopup era bloqueado pelos navegadores mobile
+  (Chrome Android, Safari iOS) — eles bloqueiam popups
+  por padrao mesmo apos clique.
+- O safety-net do loader era de 20s, muito longo para o
+  usuario perceber.
+
+CORRECAO (v57)
+--------------
+js/app.js  -> funcao googleAuth() agora e HIBRIDA:
+  * MOBILE  -> signInWithRedirect (nao usa popup)
+  * DESKTOP -> signInWithPopup, com fallback automatico
+              para redirect quando o navegador bloqueia.
+  * Resultado: NUNCA mais aparece "Pop-up bloqueado".
+
+js/app-parts/login-novo.js -> mesma logica hibrida no
+  botao de Google da tela de login.
+
+Safety-net do loader: reduzido de 20s -> 8s.
+Mesmo se algo travar, o loader some em 8s e a tela
+de login volta a aparecer (sem ficar preso).
+
+CABECALHOS EM TODOS OS ARQUIVOS
+-------------------------------
+Cada .js em js/ agora tem um bloco no inicio dizendo:
+  - Caminho do arquivo
+  - O que ele faz
+  - Marcador de INICIO / FIM
+e um bloco "// FIM: ..." no final.
+
+Os arquivos que ja tinham cabecalho proprio (firebase.js,
+app-parts/login-novo.js, etc.) foram mantidos sem
+duplicar.
+
+ARQUIVOS ALTERADOS NESTA VERSAO
+-------------------------------
+- js/app.js                (googleAuth hibrido, loader 8s)
+- js/app-parts/login-novo.js (Google hibrido, timeout 8s)
+- js/*.js                  (cabecalhos descritivos)
+- LEIA-ME-V57-LOGIN.txt    (este arquivo)
